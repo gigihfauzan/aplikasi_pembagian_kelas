@@ -311,7 +311,8 @@
                         <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-16 h-16 object-contain logo-transparent" alt="Logo SMPN 2 Kedungbanteng">
                     </div>
                     <h3 class="text-xl font-bold text-slate-800">Menunggu Unggahan Data</h3>
-                    <p class="text-slate-500 max-w-md mx-auto mt-2 text-sm leading-relaxed" id="main-state-description">
+                    <!-- Diperbarui: Mengubah ID dari main-state-description menjadi main-state-text untuk menghilangkan TypeError -->
+                    <p class="text-slate-500 max-w-md mx-auto mt-2 text-sm leading-relaxed" id="main-state-text">
                         Silakan unggah berkas Excel atau gunakan tombol <span class="font-semibold text-blue-600">Data Simulasi</span>, lalu sesuaikan pemetaan Wali Kelas sebelum menekan tombol <span class="font-semibold text-blue-600">Susun & Bagi Kelas</span>.
                     </p>
                 </div>
@@ -935,7 +936,7 @@
                     if (explicit) showToast("Cloud Kosong", "Belum ada riwayat hasil pembagian kelas tersimpan.", "info");
                 }
             } catch (err) {
-                console.error("Gagal memuat riwayat pembagian:", err);
+                console.error("Gagal memuat riwayat pembagian dari cloud:", err);
             }
         }
 
