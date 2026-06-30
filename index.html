@@ -27,15 +27,23 @@
         }
         /* Mengatasi masalah print terpotong atau gagal karena Tailwind hidden */
         #print-area {
-            display: none !important;
+            display: none;
         }
         @media print {
+            /* Sembunyikan elemen non-cetak */
             .no-print, header, main, footer, #toast-container {
                 display: none !important;
             }
             body {
                 background: white !important;
                 color: black !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            /* Setelan ukuran kertas A4 dengan margin rapat 0,5cm di semua sisi */
+            @page {
+                size: A4;
+                margin: 0.5cm;
             }
             #print-area {
                 display: block !important;
@@ -45,15 +53,18 @@
                 width: 100% !important;
                 z-index: 9999999 !important;
             }
+            /* Memaksa cetakan kelas muat dalam tepat 1 lembar halaman A4 */
             .print-page {
                 display: block !important;
                 page-break-after: always !important;
+                page-break-inside: avoid !important;
                 width: 100% !important;
+                height: 28.5cm !important; /* Maksimum tinggi kertas A4 setelah dikurangi margin */
+                box-sizing: border-box !important;
                 margin: 0 !important;
-                padding: 1.5cm !important;
-                box-shadow: none !important;
-                border: none !important;
+                padding: 0 !important;
                 background: white !important;
+                overflow: hidden !important;
             }
             * {
                 -webkit-print-color-adjust: exact !important;
@@ -69,8 +80,8 @@
         <div class="container mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
                 <!-- Latar belakang putih & shadow pada div logo dihilangkan sepenuhnya agar transparan -->
-                <div class="flex items-center justify-center w-14 h-14 overflow-hidden bg-transparent">
-                    <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-full h-full object-contain logo-transparent" alt="Logo SMPN 2 Kedungbanteng" onerror="this.style.display='none'">
+                <div class="flex items-center justify-center w-14 h-14 overflow-hidden bg-transparent logo-transparent">
+                    <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-full h-full object-contain" alt="Logo SMPN 2 Kedungbanteng" onerror="this.style.display='none'">
                 </div>
                 <div>
                     <h1 class="text-xl font-extrabold tracking-tight">SMP NEGERI 2 KEDUNGBANTENG</h1>
@@ -550,6 +561,16 @@
 
         // Initialize Lucide Icons
         lucide.createIcons();
+
+        // Helper pintar untuk memperlebar keterbacaan nama di denah tempat duduk tanpa kepotong kasar
+        function getShortName(fullName) {
+            if (!fullName) return '';
+            const parts = fullName.trim().split(/\s+/);
+            if (parts.length === 1) return parts[0];
+            if (parts.length === 2) return parts[0] + ' ' + parts[1];
+            // Format 3 kata atau lebih menjadi: Nama Depan + Nama Tengah + Inisial Akhir (Contoh: "Ahmad Fauzi R.")
+            return parts[0] + ' ' + parts[1] + ' ' + parts[2].charAt(0) + '.';
+        }
 
         // Helper function: Text Proper Case
         function toProperCase(str) {
@@ -1366,8 +1387,9 @@
                                         <div class="w-4 h-4 rounded-full ${studentLeft.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-extrabold mx-auto mb-1">
                                             ${studentLeft.jenisKelamin}
                                         </div>
-                                        <div class="text-[10px] font-bold truncate" title="${studentLeft.namaSiswa}">${studentLeft.namaSiswa.split(' ')[0]}</div>
-                                        <div class="text-[8px] opacity-75 mt-0.5 truncate">${studentLeft.namaSekolah.split(' ')[0]}</div>
+                                        <!-- Menampilkan nama s/d 3 suku kata / format rapi, diperlebar -->
+                                        <div class="text-[10px] font-bold truncate tracking-tight" title="${studentLeft.namaSiswa}">${getShortName(studentLeft.namaSiswa)}</div>
+                                        <div class="text-[8px] opacity-75 mt-0.5 truncate">${studentLeft.namaSekolah}</div>
                                     </div>
                                 ` : `
                                     <div class="p-1.5 rounded-lg text-center border border-dashed border-slate-700 bg-slate-900/40 text-slate-600 flex flex-col justify-center items-center min-h-[50px]">
@@ -1380,8 +1402,9 @@
                                         <div class="w-4 h-4 rounded-full ${studentRight.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-extrabold mx-auto mb-1">
                                             ${studentRight.jenisKelamin}
                                         </div>
-                                        <div class="text-[10px] font-bold truncate" title="${studentRight.namaSiswa}">${studentRight.namaSiswa.split(' ')[0]}</div>
-                                        <div class="text-[8px] opacity-75 mt-0.5 truncate">${studentRight.namaSekolah.split(' ')[0]}</div>
+                                        <!-- Menampilkan nama s/d 3 suku kata / format rapi, diperlebar -->
+                                        <div class="text-[10px] font-bold truncate tracking-tight" title="${studentRight.namaSiswa}">${getShortName(studentRight.namaSiswa)}</div>
+                                        <div class="text-[8px] opacity-75 mt-0.5 truncate">${studentRight.namaSekolah}</div>
                                     </div>
                                 ` : `
                                     <div class="p-1.5 rounded-lg text-center border border-dashed border-slate-700 bg-slate-900/40 text-slate-600 flex flex-col justify-center items-center min-h-[50px]">
@@ -1403,7 +1426,7 @@
             lucide.createIcons();
         }
 
-        // PREPARE PRINT AREA (Menjaga proper-case nama & asal sekolah)
+        // PREPARE PRINT AREA (Sistem 2-Kolom Sempurna, Pas 1 Halaman Kertas A4 dengan margin 0.5cm)
         function preparePrintArea() {
             try {
                 printArea.innerHTML = '';
@@ -1420,31 +1443,37 @@
                     const girlsCount = currentStudents.filter(s => s.jenisKelamin === 'P').length;
 
                     const page = document.createElement('div');
-                    page.className = 'print-page bg-white p-8 mb-8 text-black border border-slate-200 shadow-sm';
+                    page.className = 'print-page bg-white';
                     
+                    // Generate rows table dengan padding yang sangat presisi agar muat vertikal
                     let tableRows = '';
                     currentStudents.forEach((s, idx) => {
                         tableRows += `
                             <tr class="border-b border-slate-300">
-                                <td class="border border-slate-400 px-3 py-1.5 text-center text-xs font-bold">${idx + 1}</td>
-                                <td class="border border-slate-400 px-3 py-1.5 text-xs font-mono">${s.nisn}</td>
-                                <td class="border border-slate-400 px-3 py-1.5 text-xs font-bold">${s.namaSiswa}</td>
-                                <td class="border border-slate-400 px-3 py-1.5 text-center text-xs">${s.jenisKelamin === 'L' ? 'LAKI-LAKI' : 'PEREMPUAN'}</td>
-                                <td class="border border-slate-400 px-3 py-1.5 text-xs">${s.namaSekolah}</td>
+                                <td class="border border-slate-400 px-2 py-0.5 text-center font-bold text-[9px]">${idx + 1}</td>
+                                <td class="border border-slate-400 px-2 py-0.5 text-[9px] font-mono">${s.nisn}</td>
+                                <td class="border border-slate-400 px-2 py-0.5 text-[9px] font-bold truncate max-w-[130px]">${s.namaSiswa}</td>
+                                <td class="border border-slate-400 px-2 py-0.5 text-center text-[9px] font-semibold">${s.jenisKelamin}</td>
+                                <td class="border border-slate-400 px-2 py-0.5 text-[9px] truncate max-w-[120px]">${s.namaSekolah}</td>
                             </tr>
                         `;
                     });
 
+                    // Susun grid denah meja berpasangan 2-kolom super kompak untuk print
                     let seatingGridHtml = '';
                     currentSeating.forEach((pair, pairIdx) => {
                         const l = pair[0];
                         const r = pair[1];
                         seatingGridHtml += `
-                            <div class="border border-slate-400 p-1.5 text-center text-[10px] bg-white">
-                                <div class="font-bold border-b border-slate-300 pb-0.5 mb-1 text-slate-500">Meja ${pairIdx + 1}</div>
-                                <div class="grid grid-cols-2 gap-1">
-                                    <div class="bg-slate-100 p-0.5 rounded font-bold truncate">${l ? `[${l.jenisKelamin}] ${l.namaSiswa.split(' ')[0]}` : 'Kosong'}</div>
-                                    <div class="bg-slate-100 p-0.5 rounded font-bold truncate">${r ? `[${r.jenisKelamin}] ${r.namaSiswa.split(' ')[0]}` : 'Kosong'}</div>
+                            <div class="border border-slate-400 p-1 text-center bg-white rounded-md shadow-sm">
+                                <div class="font-extrabold text-[8px] border-b border-slate-300 pb-0.5 mb-1 text-slate-500">Meja ${pairIdx + 1}</div>
+                                <div class="grid grid-cols-2 gap-1 text-[8px]">
+                                    <div class="bg-slate-100 px-1 py-0.5 rounded font-bold truncate tracking-tighter" title="${l ? l.namaSiswa : ''}">
+                                        ${l ? `[L] ${getShortName(l.namaSiswa)}` : 'Kosong'}
+                                    </div>
+                                    <div class="bg-slate-100 px-1 py-0.5 rounded font-bold truncate tracking-tighter" title="${r ? r.namaSiswa : ''}">
+                                        ${r ? `[P] ${getShortName(r.namaSiswa)}` : 'Kosong'}
+                                    </div>
                                 </div>
                             </div>
                         `;
@@ -1452,97 +1481,109 @@
 
                     page.innerHTML = `
                         <!-- Header Kop Surat SMP 2 Kedungbanteng (Official) -->
-                        <div class="text-center border-b-4 border-double border-slate-900 pb-2 mb-4">
-                            <div class="flex items-center justify-center gap-4">
-                                <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-16 h-16 object-contain logo-transparent" alt="Logo SMPN 2 Kedungbanteng">
-                                <div>
-                                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800 leading-tight">DAFTAR NAMA SISWA KELAS VII ${c.letter}</h2>
-                                    <h1 class="text-lg font-black tracking-wider uppercase text-slate-900 leading-tight">SEKOLAH MENENGAH PERTAMA NEGERI 2 KEDUNGBANTENG</h1>
-                                    <p class="text-[10px] font-bold text-slate-600 tracking-wide uppercase">TAHUN AJARAN ${ta}</p>
+                        <div class="text-center border-b-4 border-double border-slate-900 pb-2 mb-3">
+                            <div class="flex items-center justify-center gap-3">
+                                <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-12 h-12 object-contain logo-transparent" alt="Logo SMPN 2 Kedungbanteng">
+                                <div class="text-left">
+                                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-800 leading-tight">DAFTAR NAMA SISWA KELAS VII ${c.letter}</h2>
+                                    <h1 class="text-sm font-black tracking-wider uppercase text-slate-900 leading-tight">SEKOLAH MENENGAH PERTAMA NEGERI 2 KEDUNGBANTENG</h1>
+                                    <p class="text-[9px] font-bold text-slate-600 tracking-wide uppercase">TAHUN AJARAN ${ta}</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="h-4"></div>
-
-                        <!-- Main Student Table -->
-                        <table class="w-full border-collapse border border-slate-400 mb-4 text-xs">
-                            <thead>
-                                <tr class="bg-slate-100 border-b border-slate-400 text-left font-bold text-slate-800">
-                                    <th class="border border-slate-400 px-3 py-1 text-center w-10">NO</th>
-                                    <th class="border border-slate-400 px-3 py-1 w-28">NISN</th>
-                                    <th class="border border-slate-400 px-3 py-1">NAMA</th>
-                                    <th class="border border-slate-400 px-3 py-1 text-center w-36">JENIS KELAMIN</th>
-                                    <th class="border border-slate-400 px-3 py-1 w-48">ASAL SEKOLAH</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${tableRows}
-                            </tbody>
-                        </table>
-
-                        <!-- Recapitulation & Date Info -->
-                        <table class="w-full text-xs font-semibold mb-6">
-                            <tbody>
-                                <tr>
-                                    <td class="w-12 py-0.5"></td>
-                                    <td class="w-32 py-0.5">LAKI-LAKI</td>
-                                    <td class="py-0.5">: ${boysCount}</td>
-                                    <td class="text-right py-0.5 italic text-[11px]">${docDate}</td>
-                                </tr>
-                                <tr>
-                                    <td class="py-0.5"></td>
-                                    <td class="py-0.5">PEREMPUAN</td>
-                                    <td class="py-0.5">: ${girlsCount}</td>
-                                    <td class="py-0.5"></td>
-                                </tr>
-                                <tr>
-                                    <td class="py-0.5"></td>
-                                    <td class="py-0.5">JUMLAH</td>
-                                    <td class="py-0.5">: ${currentStudents.length}</td>
-                                    <td class="py-0.5"></td>
-                                </tr>
-                            </tbody>
-                        </table>
-
-                        <!-- Signatures Block -->
-                        <div class="grid grid-cols-2 gap-4 mt-8 text-xs">
-                            <div class="text-left pl-12">
-                                <p class="font-bold">Mengetahui,</p>
-                                <p class="font-bold">Kepala Sekolah</p>
-                                <div class="h-16"></div>
-                                <p class="font-extrabold underline uppercase">${kepsekName}</p>
-                                <p class="text-[10px] text-slate-700 font-mono">${kepsekNip}</p>
+                        <!-- Main 2-Column Side-by-Side Printable Area -->
+                        <div class="grid grid-cols-12 gap-4">
+                            
+                            <!-- Left Column (Tabel Nama Siswa) -->
+                            <div class="col-span-7 border-r border-dashed border-slate-200 pr-2">
+                                <table class="w-full border-collapse border border-slate-400 text-[9px]">
+                                    <thead>
+                                        <tr class="bg-slate-100 border-b border-slate-400 text-left font-bold text-slate-800">
+                                            <th class="border border-slate-400 px-2 py-1 text-center w-8">NO</th>
+                                            <th class="border border-slate-400 px-2 py-1 w-20">NISN</th>
+                                            <th class="border border-slate-400 px-2 py-1">NAMA SISWA</th>
+                                            <th class="border border-slate-400 px-2 py-1 text-center w-8">JK</th>
+                                            <th class="border border-slate-400 px-2 py-1">ASAL SEKOLAH</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${tableRows}
+                                    </tbody>
+                                </table>
                             </div>
-                            <div class="text-left pl-12">
-                                <p class="font-bold">&nbsp;</p>
-                                <p class="font-bold">Wali Kelas VII ${c.letter}</p>
-                                <div class="h-16"></div>
-                                <p class="font-extrabold underline uppercase">${c.waliKelas || '........................................'}</p>
-                                <p class="text-[10px] text-slate-700 font-mono">${c.nip ? 'NIP. ' + c.nip : '........................................'}</p>
-                            </div>
-                        </div>
 
-                        <div class="page-break-before h-4"></div>
+                            <!-- Right Column (Rekap, Denah Tempat Duduk, & Tanda Tangan) -->
+                            <div class="col-span-5 flex flex-col justify-between h-[23.5cm]">
+                                
+                                <!-- 1. Tabel Rekapitulasi Gender (Sangat Rapi) -->
+                                <div>
+                                    <h4 class="text-[9px] font-black uppercase mb-1.5 border-b pb-0.5 border-slate-300 text-slate-700 flex items-center gap-1">
+                                        <i data-lucide="info" class="w-3 h-3"></i> REKAPITULASI KELAS
+                                    </h4>
+                                    <table class="w-full border-collapse border border-slate-300 text-[9px]">
+                                        <tbody>
+                                            <tr class="border-b border-slate-200">
+                                                <td class="px-2 py-0.5 font-bold text-slate-600 w-28">LAKI-LAKI (L)</td>
+                                                <td class="px-2 py-0.5 font-extrabold">: ${boysCount} Siswa</td>
+                                            </tr>
+                                            <tr class="border-b border-slate-200">
+                                                <td class="px-2 py-0.5 font-bold text-slate-600">PEREMPUAN (P)</td>
+                                                <td class="px-2 py-0.5 font-extrabold">: ${girlsCount} Siswa</td>
+                                            </tr>
+                                            <tr class="bg-slate-50 font-bold">
+                                                <td class="px-2 py-1 text-slate-800">TOTAL SISWA</td>
+                                                <td class="px-2 py-1 text-blue-900 text-xs font-black">: ${currentStudents.length} Siswa</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
 
-                        <!-- Seating Layout Print Page -->
-                        <div class="mt-8 pt-8 border-t border-dashed border-slate-300">
-                            <h4 class="text-[11px] font-extrabold uppercase mb-3 text-slate-700 text-center">DENAH TEMPAT DUDUK VII ${c.letter} (Papan Tulis di Sisi Atas)</h4>
-                            <div class="grid grid-cols-4 gap-2">
-                                ${seatingGridHtml}
+                                <!-- 2. Denah Tempat Duduk Miniatur (Dibuat lebar, padat & pas di kolom kanan) -->
+                                <div class="mt-4 flex-grow">
+                                    <h4 class="text-[9px] font-black uppercase mb-2 border-b pb-0.5 border-slate-300 text-slate-700 flex items-center gap-1">
+                                        <i data-lucide="grid" class="w-3 h-3"></i> DENAH TEMPAT DUDUK (Papan Tulis di Atas)
+                                    </h4>
+                                    <div class="grid grid-cols-2 gap-1.5 max-h-[12cm] overflow-hidden">
+                                        ${seatingGridHtml}
+                                    </div>
+                                </div>
+
+                                <!-- 3. Area Tanda Tangan Ditumpuk/Dijejer Pas di Bagian Bawah -->
+                                <div class="border-t border-dashed border-slate-200 pt-3 mt-auto">
+                                    <p class="text-right text-[8px] italic mb-2">${docDate}</p>
+                                    <div class="grid grid-cols-2 gap-2 text-[9px]">
+                                        <div class="text-center">
+                                            <p class="text-slate-500 text-[8px]">Mengetahui,</p>
+                                            <p class="font-bold text-slate-800 text-[9px] leading-tight">Kepala Sekolah</p>
+                                            <div class="h-10"></div>
+                                            <p class="font-black underline uppercase text-[9px]">${kepsekName}</p>
+                                            <p class="text-[8px] text-slate-600 font-mono">${kepsekNip}</p>
+                                        </div>
+                                        <div class="text-center">
+                                            <p class="text-slate-500 text-[8px]">&nbsp;</p>
+                                            <p class="font-bold text-slate-800 text-[9px] leading-tight">Wali Kelas VII ${c.letter}</p>
+                                            <div class="h-10"></div>
+                                            <p class="font-black underline uppercase text-[9px]">${c.waliKelas || '........................................'}</p>
+                                            <p class="text-[8px] text-slate-600 font-mono">${c.nip ? 'NIP. ' + c.nip : '........................................'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
                     `;
 
                     printArea.appendChild(page);
                 });
+                lucide.createIcons();
             } catch (err) {
                 console.error("Gagal menyiapkan area cetak PDF:", err);
                 showToast("Gagal Cetak PDF", "Terjadi kesalahan saat menyusun dokumen: " + err.message, "error");
             }
         }
 
-        // EXPORT TO EXCEL DENGAN METODE BLOB YANG AMAN DARI SANDBOX
+        // EXPORT TO EXCEL DENGAN METODE BLOB YANG AMAN DARI SANDBOX BARU (Gunakan type: 'array')
         function exportToExcel() {
             try {
                 if (distributedClasses.length === 0) {
@@ -1608,16 +1649,9 @@
                     XLSX.utils.book_append_sheet(wb, ws, `Kelas VII ${c.letter}`);
                 });
 
-                // PENDEKATAN BLOB AMAN: Membuat unduhan Excel melalui element anchor secara manual agar lolos sandbox browser
-                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
-                function s2ab(s) {
-                    const buf = new ArrayBuffer(s.length);
-                    const view = new Uint8Array(buf);
-                    for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
-                    return buf;
-                }
-                
-                const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
+                // PENDEKATAN BLOB BARU SANGAT AMAN: Menggunakan write dengan type 'array' langsung membentuk Uint8Array (Bebas Error Sandbox)
+                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                const blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
                 const blobUrl = URL.createObjectURL(blob);
                 const filename = `Pembagian_Kelas_VII_SMPN2_Kedungbanteng_${String(ta || '').replace('/', '-')}.xlsx`;
                 
@@ -1626,8 +1660,12 @@
                 link.download = filename;
                 document.body.appendChild(link);
                 link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(blobUrl);
+                
+                // Bersihkan blob url setelah selesai klik untuk memulihkan memori browser
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(blobUrl);
+                }, 150);
 
                 showToast("Ekspor Excel", "File Excel multi-sheet berhasil diunduh.", "success");
             } catch (err) {
@@ -1651,14 +1689,8 @@
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Template");
                 
-                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
-                function s2ab(s) {
-                    const buf = new ArrayBuffer(s.length);
-                    const view = new Uint8Array(buf);
-                    for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
-                    return buf;
-                }
-                const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
+                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                const blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
                 const blobUrl = URL.createObjectURL(blob);
                 
                 const link = document.createElement("a");
@@ -1666,8 +1698,11 @@
                 link.download = "Template_PMB_SMPN2_Kedungbanteng.xlsx";
                 document.body.appendChild(link);
                 link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(blobUrl);
+                
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(blobUrl);
+                }, 150);
 
                 showToast("Template Diunduh", "Gunakan template ini untuk mengisi data Anda.", "info");
             } catch (err) {
