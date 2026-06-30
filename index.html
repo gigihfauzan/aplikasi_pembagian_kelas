@@ -359,6 +359,54 @@
         let authUser = null;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'smpn2-kedungbanteng-app';
 
+        // Toggles Firebase Config Panel
+        function toggleFirebasePanel() {
+            const panel = document.getElementById('firebase-panel');
+            const chevron = document.getElementById('fb-chevron');
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                chevron.classList.add('rotate-180');
+            } else {
+                panel.classList.add('hidden');
+                chevron.classList.remove('rotate-180');
+            }
+        }
+
+        // Save Firebase Credentials securely to LocalStorage (If you want custom config override)
+        function saveFirebaseConfig() {
+            const rawJson = document.getElementById('firebase-json-input').value.trim();
+            if (!rawJson) {
+                showToast("Input Kosong", "Silakan tempelkan konfigurasi JSON Firebase terlebih dahulu.", "error");
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(rawJson);
+                if (!parsed.projectId || !parsed.apiKey) {
+                    showToast("Format Tidak Valid", "Objek JSON harus menyertakan minimal 'apiKey' dan 'projectId'.", "error");
+                    return;
+                }
+                
+                localStorage.setItem('reigncast_firebase_config', rawJson);
+                showToast("Tersimpan!", "Kredensial disimpan lokal. Memulai sambungan...", "success");
+                
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } catch (err) {
+                showToast("JSON Error", "Gagal memproses JSON. Pastikan tanda kutip dan kurung kurawal sesuai.", "error");
+            }
+        }
+
+        // Remove Custom Firebase Config from LocalStorage
+        function clearFirebaseConfig() {
+            localStorage.removeItem('reigncast_firebase_config');
+            showToast("Kembali ke Default", "Konfigurasi kustom dihapus, menggunakan setelan bawaan SMPN 2 Kedungbanteng.", "info");
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        }
+
         // Inisialisasi Firebase secara dinamis dan aman
         async function initFirebase() {
             try {
@@ -367,6 +415,7 @@
                 const savedConfig = localStorage.getItem('reigncast_firebase_config');
                 if (savedConfig) {
                     configToUse = JSON.parse(savedConfig);
+                    document.getElementById('firebase-json-input').value = savedConfig;
                 }
 
                 if (configToUse && configToUse.projectId) {
@@ -523,20 +572,24 @@
             // Proses standarisasi penulisan gelar akademik setelah koma (S.Pd., M.Pd. dsb.)
             for (let i = 1; i < parts.length; i++) {
                 let degree = parts[i].trim();
-                degree = degree.replace(/s\.?pd\.?/gi, 'S.Pd.');
-                degree = degree.replace(/m\.?pd\.?/gi, 'M.Pd.');
-                degree = degree.replace(/s\.?kom\.?/gi, 'S.Kom.');
-                degree = degree.replace(/m\.?kom\.?/gi, 'M.Kom.');
-                degree = degree.replace(/s\.?t\.?/gi, 'S.T.');
-                degree = degree.replace(/m\.?t\.?/gi, 'M.T.');
-                degree = degree.replace(/s\.?si\.?/gi, 'S.Si.');
-                degree = degree.replace(/m\.?si\.?/gi, 'M.Si.');
-                degree = degree.replace(/s\.?e\.?/gi, 'S.E.');
-                degree = degree.replace(/m\.?m\.?/gi, 'M.M.');
-                degree = degree.replace(/s\.?ip\.?/gi, 'S.IP.');
-                degree = degree.replace(/s\.?psi\.?/gi, 'S.Psi.');
-                degree = degree.replace(/drs\.?/gi, 'Drs.');
-                degree = degree.replace(/dra\.?/gi, 'Dra.');
+                let lower = degree.toLowerCase().replace(/\./g, '');
+                if (lower === 'spd') degree = 'S.Pd.';
+                else if (lower === 'mpd') degree = 'M.Pd.';
+                else if (lower === 'skom') degree = 'S.Kom.';
+                else if (lower === 'mkom') degree = 'M.Kom.';
+                else if (lower === 'st') degree = 'S.T.';
+                else if (lower === 'mt') degree = 'M.T.';
+                else if (lower === 'ssi') degree = 'S.Si.';
+                else if (lower === 'msi') degree = 'M.Si.';
+                else if (lower === 'se') degree = 'S.E.';
+                else if (lower === 'mm') degree = 'M.M.';
+                else if (lower === 'sip') degree = 'S.IP.';
+                else if (lower === 'spsi') degree = 'S.Psi.';
+                else if (lower === 'drs') degree = 'Drs.';
+                else if (lower === 'dra') degree = 'Dra.';
+                else {
+                    degree = degree.charAt(0).toUpperCase() + degree.slice(1);
+                }
                 parts[i] = ' ' + degree;
             }
 
@@ -604,14 +657,28 @@
                 });
             });
             document.querySelectorAll('.class-wali-input').forEach(el => {
-                el.addEventListener('change', (e) => {
+                // Perubahan real-time instan saat mengetik
+                el.addEventListener('input', (e) => {
+                    const letter = e.target.getAttribute('data-letter');
+                    const conf = classConfigurations.find(c => c.letter === letter);
+                    if (conf) {
+                        conf.waliKelas = e.target.value;
+                        const dClass = distributedClasses.find(cl => cl.letter === letter);
+                        if (dClass) {
+                            dClass.waliKelas = e.target.value;
+                            renderClassContent();
+                        }
+                        triggerAutosave();
+                    }
+                });
+                
+                // Formatisasi gelar secara otomatis saat klik diluar/selesai mengetik (blur)
+                el.addEventListener('blur', (e) => {
                     const letter = e.target.getAttribute('data-letter');
                     const conf = classConfigurations.find(c => c.letter === letter);
                     if (conf) {
                         conf.waliKelas = toProperCase(e.target.value);
-                        e.target.value = conf.waliKelas; // Menampilkan format Proper Case gelar yang benar langsung di layar
-
-                        // Sinkronisasi realtime ke data kelas terdistribusi
+                        e.target.value = conf.waliKelas;
                         const dClass = distributedClasses.find(cl => cl.letter === letter);
                         if (dClass) {
                             dClass.waliKelas = conf.waliKelas;
@@ -622,13 +689,11 @@
                 });
             });
             document.querySelectorAll('.class-nip-input').forEach(el => {
-                el.addEventListener('change', (e) => {
+                el.addEventListener('input', (e) => {
                     const letter = e.target.getAttribute('data-letter');
                     const conf = classConfigurations.find(c => c.letter === letter);
                     if (conf) {
                         conf.nip = e.target.value;
-
-                        // Sinkronisasi realtime ke data kelas terdistribusi
                         const dClass = distributedClasses.find(cl => cl.letter === letter);
                         if (dClass) {
                             dClass.nip = conf.nip;
@@ -1414,6 +1479,11 @@
                     const boysCount = currentStudents.filter(s => s.jenisKelamin === 'L').length;
                     const girlsCount = currentStudents.filter(s => s.jenisKelamin === 'P').length;
 
+                    // Mengambil data Wali Kelas dan NIP paling update langsung dari Class Configurations
+                    const conf = classConfigurations.find(cfg => cfg.letter === c.letter) || {};
+                    const currentWaliKelas = conf.waliKelas || `Wali Kelas VII ${c.letter}`;
+                    const currentWaliNip = conf.nip ? "NIP. " + conf.nip : "........................................";
+
                     // --- HALAMAN 1: DAFTAR NAMA SISWA KELAS (LEBAR PENUH, PAS 1 HALAMAN) ---
                     const page1 = document.createElement('div');
                     page1.className = 'print-page bg-white p-4 flex flex-col justify-between';
@@ -1501,10 +1571,11 @@
                                 </div>
                                 <div class="text-center">
                                     <p class="font-bold">&nbsp;</p>
-                                    <p class="font-bold">Wali Kelas VII ${c.letter}</p>
+                                    <!-- Diperbarui: Tanda tangan Wali kelas disederhanakan tanpa menyebutkan kelasnya -->
+                                    <p class="font-bold">Wali Kelas</p>
                                     <div class="h-12"></div>
-                                    <p class="font-extrabold underline uppercase">${c.waliKelas || '........................................'}</p>
-                                    <p class="text-[9px] text-slate-600 font-mono">${c.nip ? 'NIP. ' + c.nip : '........................................'}</p>
+                                    <p class="font-extrabold underline uppercase">${currentWaliKelas}</p>
+                                    <p class="text-[9px] text-slate-600 font-mono">${currentWaliNip}</p>
                                 </div>
                             </div>
                         </div>
@@ -1519,25 +1590,26 @@
                         const studentLeft = pair[0];
                         const studentRight = pair[1];
                         seatingGridHtml += `
-                            <div class="border border-slate-400 p-2 text-center bg-white rounded-md shadow-sm">
-                                <div class="font-extrabold text-[9px] border-b border-slate-300 pb-0.5 mb-1.5 text-slate-500 uppercase">Meja ${pairIdx + 1}</div>
-                                <div class="grid grid-cols-2 gap-2 text-[9px]">
+                            <!-- Diperbarui: Seating Box minimal h-[85px] (vertically stretched) agar semua text nama nampak sempurna -->
+                            <div class="border border-slate-400 p-2.5 text-center bg-white rounded-md shadow-sm h-[85px] flex flex-col justify-between">
+                                <div class="font-extrabold text-[9px] border-b border-slate-300 pb-1 mb-1 text-slate-500 uppercase">Meja ${pairIdx + 1}</div>
+                                <div class="grid grid-cols-2 gap-2 text-[10px] items-center h-full">
                                     ${studentLeft ? `
-                                        <div class="p-1 rounded bg-slate-50 border border-slate-200">
+                                        <div class="p-1 rounded bg-slate-50 border border-slate-200 h-full flex flex-col justify-center">
                                             <div class="w-3.5 h-3.5 rounded-full ${studentLeft.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-bold mx-auto mb-0.5">${studentLeft.jenisKelamin}</div>
-                                            <div class="font-extrabold truncate max-w-[75px]" title="${studentLeft.namaSiswa}">${getShortName(studentLeft.namaSiswa)}</div>
+                                            <div class="font-extrabold truncate max-w-[85px] text-[10px] leading-tight" title="${studentLeft.namaSiswa}">${getShortName(studentLeft.namaSiswa)}</div>
                                         </div>
                                     ` : `
-                                        <div class="p-1 rounded border border-dashed border-slate-200 text-slate-400 text-[8px] flex items-center justify-center">Kosong</div>
+                                        <div class="p-1 rounded border border-dashed border-slate-200 text-slate-400 text-[8px] h-full flex items-center justify-center">Kosong</div>
                                     `}
 
                                     ${studentRight ? `
-                                        <div class="p-1 rounded bg-slate-50 border border-slate-200">
+                                        <div class="p-1 rounded bg-slate-50 border border-slate-200 h-full flex flex-col justify-center">
                                             <div class="w-3.5 h-3.5 rounded-full ${studentRight.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-bold mx-auto mb-0.5">${studentRight.jenisKelamin}</div>
-                                            <div class="font-extrabold truncate max-w-[75px]" title="${studentRight.namaSiswa}">${getShortName(studentRight.namaSiswa)}</div>
+                                            <div class="font-extrabold truncate max-w-[75px] text-[10px] leading-tight" title="${studentRight.namaSiswa}">${getShortName(studentRight.namaSiswa)}</div>
                                         </div>
                                     ` : `
-                                        <div class="p-1 rounded border border-dashed border-slate-200 text-slate-400 text-[8px] flex items-center justify-center">Kosong</div>
+                                        <div class="p-1 rounded border border-dashed border-slate-200 text-slate-400 text-[8px] h-full flex items-center justify-center">Kosong</div>
                                     `}
                                 </div>
                             </div>
@@ -1573,10 +1645,11 @@
                                 <div></div>
                                 <div class="text-center">
                                     <p class="text-slate-500 text-[9px]">${docDate}</p>
-                                    <p class="font-bold text-slate-800 leading-tight">Wali Kelas VII ${c.letter}</p>
+                                    <!-- Diperbarui: Tanda tangan Wali kelas disederhanakan tanpa menyebutkan kelasnya -->
+                                    <p class="font-bold text-slate-800 leading-tight">Wali Kelas</p>
                                     <div class="h-12"></div>
-                                    <p class="font-extrabold underline uppercase">${c.waliKelas || '........................................'}</p>
-                                    <p class="text-[9px] text-slate-600 font-mono">${c.nip ? 'NIP. ' + c.nip : '........................................'}</p>
+                                    <p class="font-extrabold underline uppercase">${currentWaliKelas}</p>
+                                    <p class="text-[9px] text-slate-600 font-mono">${currentWaliNip}</p>
                                 </div>
                             </div>
                         </div>
@@ -1592,7 +1665,7 @@
             }
         }
 
-        // EXPORT TO EXCEL DENGAN METODE BLOB DAN PEMBAGIAN SHEET YANG AMAN (Siswa = Sheet 1, Denah = Sheet 2)
+        // EXPORT TO EXCEL DENGAN METODE BASE64 COMPATIBLE PENUH (Siswa = Sheet 1, Denah = Sheet 2)
         function exportToExcel() {
             try {
                 if (distributedClasses.length === 0) {
@@ -1608,8 +1681,13 @@
 
                 distributedClasses.forEach((c) => {
                     const currentStudents = c.students || [];
-                    const currentSeating = c.seating || [];
+                    const currentSeating = c.seating || arrangeSeating(currentStudents);
                     
+                    // Mengambil data Wali Kelas dan NIP paling update langsung dari Class Configurations
+                    const conf = classConfigurations.find(cfg => cfg.letter === c.letter) || {};
+                    const currentWaliKelas = conf.waliKelas || `Wali Kelas VII ${c.letter}`;
+                    const currentWaliNip = conf.nip ? "NIP. " + conf.nip : "";
+
                     // --- SHEET 1: DAFTAR NAMA SISWA ---
                     const sheetData = [];
                     sheetData.push(["DAFTAR NAMA SISWA KELAS VII " + c.letter]);
@@ -1638,12 +1716,13 @@
                     sheetData.push([]); 
 
                     sheetData.push(["", "Mengetahui,"]);
-                    sheetData.push(["", "Kepala Sekolah", "", "", "Wali Kelas VII " + c.letter]);
+                    // Diperbarui: Tanda tangan Wali kelas disederhanakan tanpa menyebutkan kelasnya
+                    sheetData.push(["", "Kepala Sekolah", "", "", "Wali Kelas"]);
                     sheetData.push([]); 
                     sheetData.push([]);
                     sheetData.push([]);
-                    sheetData.push(["", (kepsekName || '').toUpperCase(), "", "", (c.waliKelas || '').toUpperCase()]);
-                    sheetData.push(["", (kepsekNip || ''), "", "", c.nip ? "NIP. " + c.nip : ""]);
+                    sheetData.push(["", (kepsekName || '').toUpperCase(), "", "", (currentWaliKelas || '').toUpperCase()]);
+                    sheetData.push(["", (kepsekNip || ''), "", "", currentWaliNip]);
 
                     const ws1 = XLSX.utils.aoa_to_sheet(sheetData);
                     const wscols = [
@@ -1694,22 +1773,19 @@
                     XLSX.utils.book_append_sheet(wb, ws2, `Denah VII ${c.letter}`);
                 });
 
-                // PENDEKATAN BLOB TERLINDUNG: Menggunakan write dengan 'array' (Uint8Array) untuk lolos sandbox browser
-                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-                const blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-                const blobUrl = URL.createObjectURL(blob);
+                // PENDEKATAN EXCEL COMPATIBILITY MAKSIMAL: Menggunakan base64 langsung untuk bypass Iframe sandbox Chrome/Safari
+                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+                const blobUrl = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + wbout;
                 const filename = `Pembagian_Kelas_VII_SMPN2_Kedungbanteng_${String(ta || '').replace('/', '-')}.xlsx`;
                 
                 const link = document.createElement("a");
                 link.href = blobUrl;
                 link.download = filename;
-                link.target = "_blank"; // Bypass sandbox pembatasan iframe preview
                 document.body.appendChild(link);
                 link.click();
                 
                 setTimeout(() => {
                     document.body.removeChild(link);
-                    URL.revokeObjectURL(blobUrl);
                 }, 200);
 
                 showToast("Ekspor Excel", "File Excel multi-sheet berhasil diunduh.", "success");
@@ -1734,20 +1810,17 @@
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Template");
                 
-                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-                const blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-                const blobUrl = URL.createObjectURL(blob);
+                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+                const blobUrl = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + wbout;
                 
                 const link = document.createElement("a");
                 link.href = blobUrl;
                 link.download = "Template_PMB_SMPN2_Kedungbanteng.xlsx";
-                link.target = "_blank";
                 document.body.appendChild(link);
                 link.click();
                 
                 setTimeout(() => {
                     document.body.removeChild(link);
-                    URL.revokeObjectURL(blobUrl);
                 }, 200);
 
                 showToast("Template Diunduh", "Gunakan template ini untuk mengisi data Anda.", "info");
