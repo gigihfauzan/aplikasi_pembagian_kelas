@@ -1431,7 +1431,7 @@
                     const currentWaliKelas = conf.waliKelas || `Wali Kelas VII${activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X')} ${c.letter}`;
                     const currentWaliNip = conf.nip ? "NIP " + conf.nip : "........................................";
 
-                    // --- HALAMAN 1: DAFTAR NAMA SISWA KELAS (PAS 1 HALAMAN, PROPORSIONAL) ---
+                    // --- HALAMAN 1: DAFTAR NAMA SISWA KELAS (LEBAR PENUH, PAS 1 HALAMAN) ---
                     const page1 = document.createElement('div');
                     page1.className = 'print-page bg-white p-4 flex flex-col justify-between';
                     
@@ -1530,7 +1530,7 @@
                         </div>
                     `;
 
-                    // --- HALAMAN 2: DENAH TEMPAT DUDUK MEJA BERPASANGAN (BESAR, TINGGI h-[135px] & WRAP TEXT) ---
+                    // --- HALAMAN 2: DENAH TEMPAT DUDUK MEJA BERPASANGAN (BESAR, TINGGI h-[125px] & WRAP TEXT) ---
                     const page2 = document.createElement('div');
                     page2.className = 'print-page bg-white p-4 flex flex-col justify-between';
 
@@ -1539,13 +1539,13 @@
                         const studentLeft = pair[0];
                         const studentRight = pair[1];
                         seatingGridHtml += `
-                            <!-- Diperbarui: Seating Box ditingkatkan tingginya menjadi h-[135px] & Nama wrap-text (whitespace-normal break-words line-clamp-3) -->
-                            <div class="border border-slate-400 p-2.5 text-center bg-white rounded-md shadow-sm h-[135px] flex flex-col justify-between">
+                            <!-- Diperbarui: Seating Box ditingkatkan tingginya menjadi h-[125px] & Nama wrap-text (whitespace-normal break-words line-clamp-3) -->
+                            <div class="border border-slate-400 p-2.5 text-center bg-white rounded-md shadow-sm h-[125px] flex flex-col justify-between">
                                 <div class="font-extrabold text-[10px] border-b border-slate-300 pb-1 mb-1 text-slate-500 uppercase">Meja ${pairIdx + 1}</div>
                                 <div class="grid grid-cols-2 gap-1.5 text-[10px] items-center h-full">
                                     ${studentLeft ? `
                                         <div class="p-1 rounded bg-slate-50 border border-slate-200 h-full flex flex-col justify-center">
-                                            <div class="w-4 h-4 rounded-full ${studentLeft.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-bold mx-auto mb-1">${studentLeft.jenisKelamin}</div>
+                                            <div class="w-3.5 h-3.5 rounded-full ${studentLeft.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-bold mx-auto mb-1">${studentLeft.jenisKelamin}</div>
                                             <!-- Fit to cell: Lebar nama diperbesar, wrap text & Proper Case -->
                                             <div class="font-extrabold text-xs leading-tight text-slate-900 whitespace-normal break-words line-clamp-3 px-0.5" title="${studentLeft.namaSiswa}">${studentLeft.namaSiswa}</div>
                                         </div>
@@ -1555,7 +1555,7 @@
 
                                     ${studentRight ? `
                                         <div class="p-1 rounded bg-slate-50 border border-slate-200 h-full flex flex-col justify-center">
-                                            <div class="w-4 h-4 rounded-full ${studentRight.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-bold mx-auto mb-1">${studentRight.jenisKelamin}</div>
+                                            <div class="w-3.5 h-3.5 rounded-full ${studentRight.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-bold mx-auto mb-1">${studentRight.jenisKelamin}</div>
                                             <!-- Fit to cell: Lebar nama diperbesar, wrap text & Proper Case -->
                                             <div class="font-extrabold text-xs leading-tight text-slate-900 whitespace-normal break-words line-clamp-3 px-0.5" title="${studentRight.namaSiswa}">${studentRight.namaSiswa}</div>
                                         </div>
@@ -1795,6 +1795,89 @@
             } catch (err) {
                 console.error("Gagal mengunduh template:", err);
             }
+        }
+
+        // Parse Excel File dengan Deteksi Baris Header Dinamis secara Tangguh
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // MEMBUAT DETEKSI HEADER DINAMIS: memindai 12 baris pertama untuk mencari sel kunci
+                    const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    let headerIndex = 0;
+                    let foundHeader = false;
+                    
+                    for (let i = 0; i < Math.min(rawRows.length, 12); i++) {
+                        const row = rawRows[i];
+                        if (row && row.some(cell => {
+                            const val = String(cell).toLowerCase().trim();
+                            return val === 'nisn' || val === 'nama' || val.includes('nama siswa') || val.includes('no pendaftaran');
+                        })) {
+                            headerIndex = i;
+                            foundHeader = true;
+                            break;
+                        }
+                    }
+
+                    // Muat data JSON SheetJS berdasarkan range baris header yang telah diidentifikasi
+                    const dataRows = XLSX.utils.sheet_to_json(worksheet, foundHeader ? { range: headerIndex } : {});
+
+                    if (dataRows.length === 0) {
+                        showToast("File Kosong", "Excel tidak memiliki baris data pendaftar.", "error");
+                        return;
+                    }
+
+                    const mapped = dataRows.map((row, index) => {
+                        const findValue = (possibleKeys) => {
+                            for (let key of Object.keys(row)) {
+                                if (possibleKeys.includes(key.toLowerCase().trim())) {
+                                    return row[key];
+                                }
+                            }
+                            return null;
+                        };
+
+                        const nisn = findValue(['nisn', 'no pendaftaran', 'no', 'nopendaftaran', 'id', 'pendaftaran']) || `PMB-${1000 + index}`;
+                        const namaSiswaRaw = findValue(['nama siswa', 'nama', 'nama lengkap', 'namasiswa']) || 'Tanpa Nama';
+                        const jenisKelamin = String(findValue(['jenis kelamin', 'jk', 'gender', 'sex', 'j_kelamin']) || 'L').toUpperCase().trim();
+                        const skorNilai = parseFloat(findValue(['skor nilai', 'nilai', 'skor', 'skornilai', 'un']) || 75.0); // Default 75
+                        const namaSekolahRaw = findValue(['nama sekolah', 'sekolah', 'sekolah asal', 'asal sekolah', 'namasekolah']) || 'SMPN 2 Kedungbanteng';
+                        const kelasAsalRaw = findValue(['kelas asal', 'kelas vii', 'kelas', 'asal kelas', 'kelassiswa']) || 'A';
+                        const prestasi = String(findValue(['prestasi sertifikat', 'prestasi', 'sertifikat', 'keterangan']) || '').trim();
+
+                        // Sempurnakan filter deteksi Sertifikat (Rule Sertifikat/Blank)
+                        const cleanPres = prestasi.toLowerCase();
+                        const hasSertifikat = (cleanPres.includes('sertifikat') || cleanPres === 'ada' || (prestasi !== '' && cleanPres !== 'kosong'));
+
+                        return {
+                            nisn: String(nisn).trim().toUpperCase(),
+                            namaSiswa: toProperCase(namaSiswaRaw),
+                            jenisKelamin: (jenisKelamin.startsWith('P') || jenisKelamin === 'PEREMPUAN') ? 'P' : 'L',
+                            skorNilai,
+                            kelasAsal: String(kelasAsalRaw).replace(/[^A-Z0-9]/gi, '').toUpperCase(),
+                            namaSekolah: toProperCase(namaSekolahRaw),
+                            prestasi: hasSertifikat ? 'Sertifikat' : 'Kosong'
+                        };
+                    });
+
+                    rawStudents = mapped;
+                    showToast("Impor Berhasil", `${rawStudents.length} siswa berhasil dimuat. Silakan klik 'Susun & Bagi Kelas' untuk memproses.`, "success");
+                    renderStatsPanel();
+                    searchAndRenderOutStudents();
+                    
+                    if (quickStats) quickStats.classList.remove('hidden');
+
+                } catch (error) {
+                    console.error(error);
+                    showToast("Gagal Membaca File", "Terjadi kesalahan saat memproses file Excel.", "error");
+                }
+            };
+            reader.readAsArrayBuffer(file);
         }
 
         // Generate Sample Demo Data
