@@ -359,7 +359,7 @@
         let authUser = null;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'smpn2-kedungbanteng-app';
 
-        // DOM Elements (DEKLARASI AMAN DI LEVEL ATAS)
+        // DOM Elements (DEKLARASI AMAN DI LEVEL ATAS UNTUK MENCEGAH REFERENCEERROR SAAT INITIAL LOAD)
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('file-input');
         const btnDemo = document.getElementById('btn-demo');
@@ -1335,6 +1335,7 @@
                                         <div class="w-4 h-4 rounded-full ${studentLeft.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-extrabold mx-auto mb-1">
                                             ${studentLeft.jenisKelamin}
                                         </div>
+                                        <!-- Menampilkan nama s/d 3 suku kata / format rapi, diperlebar -->
                                         <div class="text-[10px] font-bold truncate tracking-tight" title="${studentLeft.namaSiswa}">${getShortName(studentLeft.namaSiswa)}</div>
                                         <div class="text-[8px] opacity-75 mt-0.5 truncate">${studentLeft.namaSekolah}</div>
                                     </div>
@@ -1349,6 +1350,7 @@
                                         <div class="w-4 h-4 rounded-full ${studentRight.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-extrabold mx-auto mb-1">
                                             ${studentRight.jenisKelamin}
                                         </div>
+                                        <!-- Menampilkan nama s/d 3 suku kata / format rapi, diperlebar -->
                                         <div class="text-[10px] font-bold truncate tracking-tight" title="${studentRight.namaSiswa}">${getShortName(studentRight.namaSiswa)}</div>
                                         <div class="text-[8px] opacity-75 mt-0.5 truncate">${studentRight.namaSekolah}</div>
                                     </div>
@@ -1477,15 +1479,15 @@
                                     <p class="font-bold">Mengetahui,</p>
                                     <p class="font-bold">Kepala Sekolah</p>
                                     <div class="h-12"></div>
-                                    <p class="font-extrabold underline text-sm">${kepsekName}</p>
-                                    <p class="text-sm font-semibold text-slate-800 font-mono">${kepsekNip}</p>
+                                    <p class="font-extrabold underline text-xs">${kepsekName}</p>
+                                    <p class="text-xs text-slate-800 font-mono">${kepsekNip}</p>
                                 </div>
                                 <div class="text-center">
                                     <p class="font-bold">&nbsp;</p>
                                     <p class="font-bold">Wali Kelas</p>
                                     <div class="h-12"></div>
-                                    <p class="font-extrabold underline text-sm">${currentWaliKelas}</p>
-                                    <p class="text-sm font-semibold text-slate-800 font-mono">${currentWaliNip}</p>
+                                    <p class="font-extrabold underline text-xs">${currentWaliKelas}</p>
+                                    <p class="text-xs text-slate-800 font-mono">${currentWaliNip}</p>
                                 </div>
                             </div>
                         </div>
@@ -1500,8 +1502,8 @@
                         const studentLeft = pair[0];
                         const studentRight = pair[1];
                         seatingGridHtml += `
-                            <!-- Diperbarui: Seating Box ditingkatkan tingginya menjadi h-[125px] & Nama wrap-text (whitespace-normal break-words line-clamp-3) -->
-                            <div class="border border-slate-400 p-2 text-center bg-white rounded-md shadow-sm h-[125px] flex flex-col justify-between">
+                            <!-- Diperbarui: Seating Box ditingkatkan tingginya menjadi h-[110px] & Nama wrap-text (whitespace-normal break-words line-clamp-3) -->
+                            <div class="border border-slate-400 p-2 text-center bg-white rounded-md shadow-sm h-[110px] flex flex-col justify-between">
                                 <div class="font-extrabold text-[10px] border-b border-slate-300 pb-1 mb-1 text-slate-500 uppercase">Meja ${pairIdx + 1}</div>
                                 <div class="grid grid-cols-2 gap-1.5 text-[10px] items-center h-full">
                                     ${studentLeft ? `
@@ -1559,7 +1561,7 @@
                                     <p class="font-normal text-xs text-black mb-1">${docDate}</p>
                                     <p class="font-bold text-slate-800 leading-tight">Wali Kelas</p>
                                     <div class="h-12"></div>
-                                    <p class="font-extrabold underline text-sm">${currentWaliKelas}</p>
+                                    <p class="font-extrabold underline text-xs">${currentWaliKelas}</p>
                                     <p class="text-xs text-slate-800 font-mono">${currentWaliNip}</p>
                                 </div>
                             </div>
@@ -1576,7 +1578,7 @@
             }
         }
 
-        // EXPORT TO EXCEL DENGAN METODE BLOB DAN PEMBAGIAN SHEET YANG AMAN (Siswa = Sheet 1, Denah = Sheet 2)
+        // EXPORT TO EXCEL DENGAN METODE MANUAL XLSX.WRITEFILE LANGSUNG (BEBAS ERROR SANDBOX)
         function exportToExcel() {
             try {
                 if (distributedClasses.length === 0) {
@@ -1684,22 +1686,9 @@
                     XLSX.utils.book_append_sheet(wb, ws2, `Denah VII ${c.letter}`);
                 });
 
-                // PENDEKATAN BLOB ASLI (BUKAN DATA:URI): Sangat andal & bebas blokir sandbox chrome
-                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-                const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                const blobUrl = URL.createObjectURL(blob);
+                // PENDEKATAN WRITEFILE BAWAAN ASLI: Menghindari sandbox block dengan memicu file download API bawaan SheetJS
                 const filename = `Pembagian_Kelas_VII_SMPN2_Kedungbanteng_${String(ta || '').replace('/', '-')}.xlsx`;
-                
-                const link = document.createElement("a");
-                link.href = blobUrl;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                
-                setTimeout(() => {
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(blobUrl);
-                }, 200);
+                XLSX.writeFile(wb, filename);
 
                 showToast("Ekspor Excel", "File Excel multi-sheet berhasil diunduh.", "success");
             } catch (err) {
@@ -1723,21 +1712,7 @@
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Template");
                 
-                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-                const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                const blobUrl = URL.createObjectURL(blob);
-                
-                const link = document.createElement("a");
-                link.href = blobUrl;
-                link.download = "Template_PMB_SMPN2_Kedungbanteng.xlsx";
-                document.body.appendChild(link);
-                link.click();
-                
-                setTimeout(() => {
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(blobUrl);
-                }, 200);
-
+                XLSX.writeFile(wb, "Template_PMB_SMPN2_Kedungbanteng.xlsx");
                 showToast("Template Diunduh", "Gunakan template ini untuk mengisi data Anda.", "info");
             } catch (err) {
                 console.error("Gagal mengunduh template:", err);
@@ -1789,7 +1764,8 @@
 
         // Memulai Inisialisasi Koneksi Firebase Firestore saat Window dimuat
         window.onload = function() {
-            initFirebase();
+            initClassConfigurations(); // Menjalankan inisialisasi awal UI agar langsung tampil saat dibuka
+            initFirebase(); // Menghubungkan ke cloud Firebase
             
             // Pengikat tombol cetak PDF secara eksplisit
             if (btnPrintAll) {
