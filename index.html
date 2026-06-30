@@ -152,15 +152,15 @@
                             </div>
                         </div>
 
-                        <!-- Kepala Sekolah Sign Settings -->
+                        <!-- Kepala Sekolah Sign Settings (Diperbarui isian default-nya sesuai permintaan) -->
                         <div class="border-t pt-3 border-slate-100">
                             <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1">
                                 <i data-lucide="user-check" class="w-3.5 h-3.5 text-blue-600"></i>
                                 Tanda Tangan Kepala Sekolah
                             </h3>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                <input type="text" id="config-kepsek-name" value="IRMA PUJIATI, S.Pd., M.Pd." placeholder="Nama Kepala Sekolah" class="config-input w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs">
-                                <input type="text" id="config-kepsek-nip" value="NIP 197212031998022003" placeholder="NIP Kepala Sekolah" class="config-input w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs">
+                                <input type="text" id="config-kepsek-name" value="Kepala Sekolah" placeholder="Nama Kepala Sekolah" class="config-input w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs">
+                                <input type="text" id="config-kepsek-nip" value="NIP Kepala Sekolah" placeholder="NIP Kepala Sekolah" class="config-input w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs">
                             </div>
                         </div>
                     </div>
@@ -337,7 +337,7 @@
 
     <!-- JS LOGIC AND ALGORITHMS -->
     <script>
-        // Global State
+        // Global State (DIPOSISIKAN DI ATAS UNTUK KEAMANAN INSTANSIASI)
         let rawStudents = [];
         let distributedClasses = [];
         let activeClassIndex = 0;
@@ -359,7 +359,7 @@
         let authUser = null;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'smpn2-kedungbanteng-app';
 
-        // DOM Elements (DIDEKLARASIKAN DI BAGIAN PALING ATAS UNTUK MENCEGAH REFERENCEERROR)
+        // DOM Elements
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('file-input');
         const btnDemo = document.getElementById('btn-demo');
@@ -482,6 +482,58 @@
             } catch (err) {
                 console.warn("Firebase gagal terhubung. Menggunakan penyimpanan lokal/memori.", err);
             }
+        }
+
+        // Toast Notification System
+        function showToast(title, message, type = 'info') {
+            const toastContainer = document.getElementById('toast-container');
+            if (!toastContainer) return;
+            
+            const toast = document.createElement('div');
+            toast.className = `flex items-start gap-3 p-4 rounded-xl shadow-lg border text-sm max-w-sm transition-all duration-300 transform translate-y-2 opacity-0`;
+            
+            let bgClass = "bg-white border-slate-100";
+            let textClass = "text-slate-800";
+            let iconMarkup = "";
+
+            if (type === 'success') {
+                bgClass = "bg-emerald-50 border-emerald-200";
+                textClass = "text-emerald-900";
+                iconMarkup = `<i data-lucide="check-circle-2" class="text-emerald-500 w-5 h-5 flex-shrink-0"></i>`;
+            } else if (type === 'error') {
+                bgClass = "bg-rose-50 border-rose-200";
+                textClass = "text-rose-900";
+                iconMarkup = `<i data-lucide="alert-triangle" class="text-rose-500 w-5 h-5 flex-shrink-0"></i>`;
+            } else {
+                bgClass = "bg-blue-50 border-blue-200";
+                textClass = "text-blue-900";
+                iconMarkup = `<i data-lucide="info" class="text-blue-500 w-5 h-5 flex-shrink-0"></i>`;
+            }
+
+            toast.className += ` ${bgClass} ${textClass}`;
+            toast.innerHTML = `
+                ${iconMarkup}
+                <div>
+                    <h4 class="font-bold">${title}</h4>
+                    <p class="text-xs opacity-90 mt-0.5">${message}</p>
+                </div>
+            `;
+
+            toastContainer.appendChild(toast);
+            lucide.createIcons({ attrs: { class: 'w-5 h-5' } });
+            
+            // Animate In
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 50);
+
+            // Animate Out
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 4000);
         }
 
         // Initialize Lucide Icons
@@ -742,7 +794,7 @@
                     document.getElementById('config-capacity').value = data.targetKapasitas || '32';
                     document.getElementById('config-classes').value = data.jumlahKelas || '7';
                     document.getElementById('config-kepsek-name').value = data.kepsekNama || 'Kepala Sekolah';
-                    document.getElementById('config-kepsek-nip').value = data.kepsekNip || 'NIP Kelapa Sekolah';
+                    document.getElementById('config-kepsek-nip').value = data.kepsekNip || 'NIP Kepala Sekolah';
 
                     if (data.classConfigurations && data.classConfigurations.length > 0) {
                         classConfigurations = data.classConfigurations;
@@ -1454,7 +1506,7 @@
                     const currentWaliKelas = conf.waliKelas || `Wali Kelas VII ${c.letter}`;
                     const currentWaliNip = conf.nip ? "NIP " + conf.nip : "........................................";
 
-                    // --- HALAMAN 1: DAFTAR NAMA SISWA KELAS (LEBAR PENUH, PAS 1 HALAMAN) ---
+                    // --- HALAMAN 1: DAFTAR NAMA SISWA KELAS (PAS 1 HALAMAN, PROPORSIONAL) ---
                     const page1 = document.createElement('div');
                     page1.className = 'print-page bg-white p-4 flex flex-col justify-between';
                     
@@ -1486,16 +1538,16 @@
                             </div>
                         </div>
 
-                        <!-- Table Daftar Siswa Lebar Penuh dengan layout fixed agar fit to cell rapi -->
+                        <!-- Table Daftar Siswa Lebar Penuh dengan layout fixed agar fit to cell rapi & Proporsional sesuai request -->
                         <div class="flex-grow overflow-hidden mt-2">
                             <table class="w-full border-collapse border border-slate-400 text-xs table-fixed">
                                 <thead>
                                     <tr class="bg-slate-100 border-b border-slate-400 text-left font-bold text-slate-800">
-                                        <th class="border border-slate-400 px-3 py-1 text-center w-[8%]">NO</th>
-                                        <th class="border border-slate-400 px-3 py-1 w-[20%]">NISN</th>
-                                        <th class="border border-slate-400 px-3 py-1 w-[42%]">NAMA SISWA</th>
+                                        <th class="border border-slate-400 px-3 py-1 text-center w-[6%]">NO</th>
+                                        <th class="border border-slate-400 px-3 py-1 w-[14%]">NISN</th>
+                                        <th class="border border-slate-400 px-3 py-1 w-[40%]">NAMA SISWA</th>
                                         <th class="border border-slate-400 px-3 py-1 text-center w-[10%]">JK</th>
-                                        <th class="border border-slate-400 px-3 py-1 w-[20%]">ASAL SEKOLAH</th>
+                                        <th class="border border-slate-400 px-3 py-1 w-[30%]">ASAL SEKOLAH</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1532,29 +1584,27 @@
                                 </div>
                             </div>
 
-                            <!-- Signatures Block -->
+                            <!-- Signatures Block (Diperbarui: NIP ukuran font sama dengan nama & gelar proper-case) -->
                             <div class="grid grid-cols-2 gap-4 mt-6 text-xs">
                                 <div class="text-center">
                                     <p class="font-bold">Mengetahui,</p>
                                     <p class="font-bold">Kepala Sekolah</p>
                                     <div class="h-12"></div>
-                                    <!-- Diperbarui: Menghapus class uppercase untuk mempertahankan penulisan gelar S.Pd., M.Pd. yang benar -->
                                     <p class="font-extrabold underline text-sm">${kepsekName}</p>
-                                    <p class="text-xs text-slate-800 font-mono">${kepsekNip}</p>
+                                    <p class="text-sm font-semibold text-slate-800 font-mono">${kepsekNip}</p>
                                 </div>
                                 <div class="text-center">
                                     <p class="font-bold">&nbsp;</p>
                                     <p class="font-bold">Wali Kelas</p>
                                     <div class="h-12"></div>
-                                    <!-- Diperbarui: Menghapus class uppercase agar gelar wali kelas tetap Proper Case S.Pd. -->
                                     <p class="font-extrabold underline text-sm">${currentWaliKelas}</p>
-                                    <p class="text-xs text-slate-800 font-mono">${currentWaliNip}</p>
+                                    <p class="text-sm font-semibold text-slate-800 font-mono">${currentWaliNip}</p>
                                 </div>
                             </div>
                         </div>
                     `;
 
-                    // --- HALAMAN 2: DENAH TEMPAT DUDUK MEJA BERPASANGAN (4-KOLOM UTUH, BESAR & LEBAR) ---
+                    // --- HALAMAN 2: DENAH TEMPAT DUDUK MEJA BERPASANGAN (BESAR, TINGGI h-[125px] & WRAP TEXT) ---
                     const page2 = document.createElement('div');
                     page2.className = 'print-page bg-white p-4 flex flex-col justify-between';
 
@@ -1563,14 +1613,14 @@
                         const studentLeft = pair[0];
                         const studentRight = pair[1];
                         seatingGridHtml += `
-                            <!-- Diperbarui: Seating Box ditingkatkan tingginya menjadi h-[110px] (stretched) agar mengisi semua sisa space halaman dengan elegan -->
-                            <div class="border border-slate-400 p-2 text-center bg-white rounded-md shadow-sm h-[110px] flex flex-col justify-between">
+                            <!-- Diperbarui: Seating Box ditingkatkan tingginya menjadi h-[125px] & Nama wrap-text (whitespace-normal break-words line-clamp-3) -->
+                            <div class="border border-slate-400 p-2 text-center bg-white rounded-md shadow-sm h-[125px] flex flex-col justify-between">
                                 <div class="font-extrabold text-[10px] border-b border-slate-300 pb-1 mb-1 text-slate-500 uppercase">Meja ${pairIdx + 1}</div>
                                 <div class="grid grid-cols-2 gap-1.5 text-[10px] items-center h-full">
                                     ${studentLeft ? `
                                         <div class="p-1 rounded bg-slate-50 border border-slate-200 h-full flex flex-col justify-center">
                                             <div class="w-3.5 h-3.5 rounded-full ${studentLeft.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-bold mx-auto mb-0.5">${studentLeft.jenisKelamin}</div>
-                                            <div class="font-extrabold truncate max-w-[90px] text-[10px] leading-tight text-slate-900" title="${studentLeft.namaSiswa}">${getShortName(studentLeft.namaSiswa)}</div>
+                                            <div class="font-extrabold text-[10px] leading-tight text-slate-900 whitespace-normal break-words line-clamp-3 px-0.5" title="${studentLeft.namaSiswa}">${studentLeft.namaSiswa}</div>
                                         </div>
                                     ` : `
                                         <div class="p-1 rounded border border-dashed border-slate-200 text-slate-400 text-[8px] h-full flex items-center justify-center">Kosong</div>
@@ -1579,7 +1629,7 @@
                                     ${studentRight ? `
                                         <div class="p-1 rounded bg-slate-50 border border-slate-200 h-full flex flex-col justify-center">
                                             <div class="w-3.5 h-3.5 rounded-full ${studentRight.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-bold mx-auto mb-0.5">${studentRight.jenisKelamin}</div>
-                                            <div class="font-extrabold truncate max-w-[90px] text-[10px] leading-tight text-slate-900" title="${studentRight.namaSiswa}">${getShortName(studentRight.namaSiswa)}</div>
+                                            <div class="font-extrabold text-[10px] leading-tight text-slate-900 whitespace-normal break-words line-clamp-3 px-0.5" title="${studentRight.namaSiswa}">${studentRight.namaSiswa}</div>
                                         </div>
                                     ` : `
                                         <div class="p-1 rounded border border-dashed border-slate-200 text-slate-400 text-[8px] h-full flex items-center justify-center">Kosong</div>
@@ -1637,7 +1687,7 @@
             }
         }
 
-        // EXPORT TO EXCEL DENGAN METODE BASE64 COMPATIBLE PENUH (Siswa = Sheet 1, Denah = Sheet 2)
+        // EXPORT TO EXCEL DENGAN METODE BLOB ASLI YANG AMAN DARI SANDBOX (Siswa = Sheet 1, Denah = Sheet 2)
         function exportToExcel() {
             try {
                 if (distributedClasses.length === 0) {
@@ -1731,8 +1781,8 @@
                             const l = pair[0];
                             const rStudent = pair[1];
 
-                            leftRow.push(l ? `[L] ${getShortName(l.namaSiswa)}` : "Kosong");
-                            rightRow.push(rStudent ? `[P] ${getShortName(rStudent.namaSiswa)}` : "Kosong");
+                            leftRow.push(l ? l.namaSiswa : "Kosong");
+                            rightRow.push(rStudent ? rStudent.namaSiswa : "Kosong");
                         });
 
                         denahData.push(labelRow);
@@ -1745,7 +1795,7 @@
                     XLSX.utils.book_append_sheet(wb, ws2, `Denah VII ${c.letter}`);
                 });
 
-                // PENDEKATAN BLOB ASLI (BUKAN DATA:URI): Sangat andal & bebas blokir sandbox chrome
+                // PENDEKATAN BLOB ASLI SANGAT ANDAL: Membuat file biner asli (bukan data:URI) untuk memintas sistem keamanan iframe sandbox
                 const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
                 const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                 const blobUrl = URL.createObjectURL(blob);
