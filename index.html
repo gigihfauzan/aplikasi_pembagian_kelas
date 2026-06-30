@@ -27,7 +27,7 @@
         }
         /* Mengatasi masalah print terpotong atau gagal karena Tailwind hidden */
         #print-area {
-            display: none;
+            display: none !important;
         }
         @media print {
             .no-print, header, main, footer, #toast-container {
@@ -43,6 +43,7 @@
                 left: 0;
                 top: 0;
                 width: 100% !important;
+                z-index: 9999999 !important;
             }
             .print-page {
                 display: block !important;
@@ -69,7 +70,7 @@
             <div class="flex items-center gap-3">
                 <!-- Latar belakang putih & shadow pada div logo dihilangkan sepenuhnya agar transparan -->
                 <div class="flex items-center justify-center w-14 h-14 overflow-hidden bg-transparent">
-                    <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-full h-full object-contain" alt="Logo SMPN 2 Kedungbanteng" onerror="this.style.display='none'">
+                    <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-full h-full object-contain logo-transparent" alt="Logo SMPN 2 Kedungbanteng" onerror="this.style.display='none'">
                 </div>
                 <div>
                     <h1 class="text-xl font-extrabold tracking-tight">SMP NEGERI 2 KEDUNGBANTENG</h1>
@@ -1453,7 +1454,7 @@
                         <!-- Header Kop Surat SMP 2 Kedungbanteng (Official) -->
                         <div class="text-center border-b-4 border-double border-slate-900 pb-2 mb-4">
                             <div class="flex items-center justify-center gap-4">
-                                <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-16 h-16 object-contain" alt="Logo SMPN 2 Kedungbanteng">
+                                <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-16 h-16 object-contain logo-transparent" alt="Logo SMPN 2 Kedungbanteng">
                                 <div>
                                     <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800 leading-tight">DAFTAR NAMA SISWA KELAS VII ${c.letter}</h2>
                                     <h1 class="text-lg font-black tracking-wider uppercase text-slate-900 leading-tight">SEKOLAH MENENGAH PERTAMA NEGERI 2 KEDUNGBANTENG</h1>
@@ -1541,7 +1542,7 @@
             }
         }
 
-        // EXPORT TO EXCEL (Symmetric proper case implementation)
+        // EXPORT TO EXCEL DENGAN METODE BLOB YANG AMAN DARI SANDBOX
         function exportToExcel() {
             try {
                 if (distributedClasses.length === 0) {
@@ -1607,8 +1608,27 @@
                     XLSX.utils.book_append_sheet(wb, ws, `Kelas VII ${c.letter}`);
                 });
 
+                // PENDEKATAN BLOB AMAN: Membuat unduhan Excel melalui element anchor secara manual agar lolos sandbox browser
+                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+                function s2ab(s) {
+                    const buf = new ArrayBuffer(s.length);
+                    const view = new Uint8Array(buf);
+                    for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
+                    return buf;
+                }
+                
+                const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
+                const blobUrl = URL.createObjectURL(blob);
                 const filename = `Pembagian_Kelas_VII_SMPN2_Kedungbanteng_${String(ta || '').replace('/', '-')}.xlsx`;
-                XLSX.writeFile(wb, filename);
+                
+                const link = document.createElement("a");
+                link.href = blobUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(blobUrl);
+
                 showToast("Ekspor Excel", "File Excel multi-sheet berhasil diunduh.", "success");
             } catch (err) {
                 console.error("Gagal mengekspor data ke Excel:", err);
@@ -1618,19 +1638,41 @@
 
         // Generate Sample Template download
         function downloadExcelTemplate() {
-            const templateData = [
-                ["NISN", "Nama Siswa", "Jenis Kelamin (P/L)", "Skor Nilai", "Nama Sekolah", "Prestasi Sertifikat"],
-                ["0123456789", "Andi Setiadi", "L", 85.5, "SD Negeri 1 Kedungbanteng", "Kosong"],
-                ["0123456790", "Budi Raharjo", "L", 78.0, "SDN 2 Kedungbanteng", "Sertifikat"],
-                ["0123456791", "Citra Kirana", "P", 92.0, "SD N 1 Purwokerto", "Kosong"],
-                ["0123456792", "Dewi Lestari", "P", 88.5, "MI Ma'arif Kedungbanteng", "Sertifikat"]
-            ];
+            try {
+                const templateData = [
+                    ["NISN", "Nama Siswa", "Jenis Kelamin (P/L)", "Skor Nilai", "Nama Sekolah", "Prestasi Sertifikat"],
+                    ["0123456789", "Andi Setiadi", "L", 85.5, "SD Negeri 1 Kedungbanteng", "Kosong"],
+                    ["0123456790", "Budi Raharjo", "L", 78.0, "SDN 2 Kedungbanteng", "Sertifikat"],
+                    ["0123456791", "Citra Kirana", "P", 92.0, "SD N 1 Purwokerto", "Kosong"],
+                    ["0123456792", "Dewi Lestari", "P", 88.5, "MI Ma'arif Kedungbanteng", "Sertifikat"]
+                ];
 
-            const ws = XLSX.utils.aoa_to_sheet(templateData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Template");
-            XLSX.writeFile(wb, "Template_PMB_SMPN2_Kedungbanteng.xlsx");
-            showToast("Template Diunduh", "Gunakan template ini untuk mengisi data Anda.", "info");
+                const ws = XLSX.utils.aoa_to_sheet(templateData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Template");
+                
+                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+                function s2ab(s) {
+                    const buf = new ArrayBuffer(s.length);
+                    const view = new Uint8Array(buf);
+                    for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
+                    return buf;
+                }
+                const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
+                const blobUrl = URL.createObjectURL(blob);
+                
+                const link = document.createElement("a");
+                link.href = blobUrl;
+                link.download = "Template_PMB_SMPN2_Kedungbanteng.xlsx";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(blobUrl);
+
+                showToast("Template Diunduh", "Gunakan template ini untuk mengisi data Anda.", "info");
+            } catch (err) {
+                console.error("Gagal mengunduh template:", err);
+            }
         }
 
         // Generate Sample Demo Data
@@ -1679,6 +1721,18 @@
         // Memulai Inisialisasi Koneksi Firebase Firestore saat Window dimuat
         window.onload = function() {
             initFirebase();
+            
+            // Pengikat tombol cetak PDF secara eksplisit
+            document.getElementById('btn-print-all').addEventListener('click', () => {
+                if (distributedClasses.length === 0) {
+                    showToast("Tidak Ada Data", "Silakan susun pembagian kelas terlebih dahulu.", "error");
+                    return;
+                }
+                preparePrintArea();
+                setTimeout(() => {
+                    window.print();
+                }, 500);
+            });
         }
     </script>
 </body>
