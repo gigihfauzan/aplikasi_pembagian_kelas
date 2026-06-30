@@ -378,7 +378,7 @@
                 <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
                 </div>
-                <h3 class="font-bold text-lg text-slate-900">Unduhan Excel Siap</h3>
+                <h3 class="font-bold text-lg text-slate-900">Unduhan Excel Ready</h3>
                 <p class="text-xs text-slate-500 mt-2 leading-relaxed">
                     Jika unduhan Excel Anda tidak berjalan secara otomatis karena proteksi keamanan browser, silakan klik tombol hijau di bawah ini untuk mengunduhnya secara langsung:
                 </p>
@@ -605,7 +605,7 @@
 
             container.innerHTML = '';
             filtered.forEach(s => {
-                const isOut = outStudentNisns.has(s.nisn);
+                const isOutStudent = outStudentNisns.has(s.nisn);
                 const row = document.createElement('div');
                 row.className = "p-2 hover:bg-slate-50 flex items-center justify-between transition text-xs";
                 row.innerHTML = `
@@ -614,9 +614,9 @@
                         <span class="text-[10px] text-slate-400">NISN: ${s.nisn}</span>
                     </div>
                     <button onclick="toggleStudentOutStatus('${s.nisn}')" class="px-2 py-1 rounded text-[10px] font-extrabold transition ${
-                        isOut ? 'bg-rose-100 text-rose-800 hover:bg-rose-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        isOutStudent ? 'bg-rose-100 text-rose-800 hover:bg-rose-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }">
-                        ${isOut ? 'Siswa Keluar 🔴' : 'Aktif 🟢'}
+                        ${isOutStudent ? 'Siswa Keluar 🔴' : 'Aktif 🟢'}
                     </button>
                 `;
                 container.appendChild(row);
@@ -1371,6 +1371,7 @@
                                         <div class="w-4 h-4 rounded-full ${studentLeft.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-extrabold mx-auto mb-1">
                                             ${studentLeft.jenisKelamin}
                                         </div>
+                                        <!-- Menampilkan nama s/d 3 suku kata / format rapi, diperlebar -->
                                         <div class="text-[10px] font-bold truncate tracking-tight" title="${studentLeft.namaSiswa}">${getShortName(studentLeft.namaSiswa)}</div>
                                         <div class="text-[8px] opacity-75 mt-0.5 truncate">${studentLeft.namaSekolah}</div>
                                     </div>
@@ -1385,6 +1386,7 @@
                                         <div class="w-4 h-4 rounded-full ${studentRight.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-extrabold mx-auto mb-1">
                                             ${studentRight.jenisKelamin}
                                         </div>
+                                        <!-- Menampilkan nama s/d 3 suku kata / format rapi, diperlebar -->
                                         <div class="text-[10px] font-bold truncate tracking-tight" title="${studentRight.namaSiswa}">${getShortName(studentRight.namaSiswa)}</div>
                                         <div class="text-[8px] opacity-75 mt-0.5 truncate">${studentRight.namaSekolah}</div>
                                     </div>
@@ -1440,10 +1442,10 @@
                                 <td class="border border-slate-400 px-3 py-0.5 text-center text-[11px] font-bold">${idx + 1}</td>
                                 <td class="border border-slate-400 px-3 py-0.5 text-[11px] font-mono">${s.nisn}</td>
                                 <!-- Fit to cell: Truncate long names -->
-                                <td class="border border-slate-400 px-3 py-0.5 text-[11px] font-bold truncate" title="${s.namaSiswa}">${s.namaSiswa}</td>
+                                <td class="border border-slate-400 px-3 py-0.5 text-[11px] font-bold truncate max-w-[170px]" title="${s.namaSiswa}">${s.namaSiswa}</td>
                                 <td class="border border-slate-400 px-3 py-0.5 text-center text-[11px] font-semibold">${s.jenisKelamin}</td>
                                 <!-- Fit to cell: Truncate long school names -->
-                                <td class="border border-slate-400 px-3 py-0.5 text-[11px] truncate" title="${s.namaSekolah}">${s.namaSekolah}</td>
+                                <td class="border border-slate-400 px-3 py-0.5 text-[11px] truncate max-w-[160px]" title="${s.namaSekolah}">${s.namaSekolah}</td>
                             </tr>
                         `;
                     });
@@ -1466,6 +1468,7 @@
                             <table class="w-full border-collapse border border-slate-400 text-xs table-fixed">
                                 <thead>
                                     <tr class="bg-slate-100 border-b border-slate-400 text-left font-bold text-slate-800">
+                                        <!-- Lebar kolom diperbarui 100% mengikuti persentase requested: 5%, 10%, 38%, 5%, 42% -->
                                         <th class="border border-slate-400 px-3 py-1 text-center w-[5%]">NO</th>
                                         <th class="border border-slate-400 px-3 py-1 w-[10%]">NISN</th>
                                         <th class="border border-slate-400 px-3 py-1 w-[38%]">NAMA SISWA</th>
@@ -1507,7 +1510,7 @@
                                 </div>
                             </div>
 
-                            <!-- Signatures Block (Diperbarui: NIP ukuran font sama dengan nama & gelar proper-case) -->
+                            <!-- Signatures Block (Diperbarui: NIP ukuran font sama dengan nama (text-sm) & gelar proper-case) -->
                             <div class="grid grid-cols-2 gap-4 mt-6 text-xs">
                                 <div class="text-center">
                                     <p class="font-bold">Mengetahui,</p>
@@ -1527,7 +1530,7 @@
                         </div>
                     `;
 
-                    // --- HALAMAN 2: DENAH TEMPAT DUDUK MEJA BERPASANGAN (BESAR, TINGGI h-[125px] & WRAP TEXT) ---
+                    // --- HALAMAN 2: DENAH TEMPAT DUDUK MEJA BERPASANGAN (BESAR, TINGGI h-[135px] & WRAP TEXT) ---
                     const page2 = document.createElement('div');
                     page2.className = 'print-page bg-white p-4 flex flex-col justify-between';
 
@@ -1536,15 +1539,15 @@
                         const studentLeft = pair[0];
                         const studentRight = pair[1];
                         seatingGridHtml += `
-                            <!-- Diperbarui: Seating Box ditingkatkan tingginya menjadi h-[110px] & Nama wrap-text (whitespace-normal break-words line-clamp-3) -->
-                            <div class="border border-slate-400 p-2 text-center bg-white rounded-md shadow-sm h-[110px] flex flex-col justify-between">
+                            <!-- Diperbarui: Seating Box ditingkatkan tingginya menjadi h-[135px] & Nama wrap-text (whitespace-normal break-words line-clamp-3) -->
+                            <div class="border border-slate-400 p-2.5 text-center bg-white rounded-md shadow-sm h-[135px] flex flex-col justify-between">
                                 <div class="font-extrabold text-[10px] border-b border-slate-300 pb-1 mb-1 text-slate-500 uppercase">Meja ${pairIdx + 1}</div>
                                 <div class="grid grid-cols-2 gap-1.5 text-[10px] items-center h-full">
                                     ${studentLeft ? `
                                         <div class="p-1 rounded bg-slate-50 border border-slate-200 h-full flex flex-col justify-center">
-                                            <div class="w-3.5 h-3.5 rounded-full ${studentLeft.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-bold mx-auto mb-0.5">${studentLeft.jenisKelamin}</div>
+                                            <div class="w-4 h-4 rounded-full ${studentLeft.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-bold mx-auto mb-1">${studentLeft.jenisKelamin}</div>
                                             <!-- Fit to cell: Lebar nama diperbesar, wrap text & Proper Case -->
-                                            <div class="font-extrabold text-[10px] leading-tight text-slate-900 whitespace-normal break-words line-clamp-3 px-0.5" title="${studentLeft.namaSiswa}">${studentLeft.namaSiswa}</div>
+                                            <div class="font-extrabold text-xs leading-tight text-slate-900 whitespace-normal break-words line-clamp-3 px-0.5" title="${studentLeft.namaSiswa}">${studentLeft.namaSiswa}</div>
                                         </div>
                                     ` : `
                                         <div class="p-1 rounded border border-dashed border-slate-200 text-slate-400 text-[8px] h-full flex items-center justify-center">Kosong</div>
@@ -1552,9 +1555,9 @@
 
                                     ${studentRight ? `
                                         <div class="p-1 rounded bg-slate-50 border border-slate-200 h-full flex flex-col justify-center">
-                                            <div class="w-3.5 h-3.5 rounded-full ${studentRight.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-bold mx-auto mb-0.5">${studentRight.jenisKelamin}</div>
+                                            <div class="w-4 h-4 rounded-full ${studentRight.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-bold mx-auto mb-1">${studentRight.jenisKelamin}</div>
                                             <!-- Fit to cell: Lebar nama diperbesar, wrap text & Proper Case -->
-                                            <div class="font-extrabold text-[10px] leading-tight text-slate-900 whitespace-normal break-words line-clamp-3 px-0.5" title="${studentRight.namaSiswa}">${studentRight.namaSiswa}</div>
+                                            <div class="font-extrabold text-xs leading-tight text-slate-900 whitespace-normal break-words line-clamp-3 px-0.5" title="${studentRight.namaSiswa}">${studentRight.namaSiswa}</div>
                                         </div>
                                     ` : `
                                         <div class="p-1 rounded border border-dashed border-slate-200 text-slate-400 text-[8px] h-full flex items-center justify-center">Kosong</div>
@@ -1923,6 +1926,11 @@
             // Toggle Views
             if (toggleListView) toggleListView.addEventListener('click', () => setViewMode('list'));
             if (toggleSeatingView) toggleSeatingView.addEventListener('click', () => setViewMode('seating'));
+
+            // Pengikat ekspor Excel agar berjalan mulus
+            if (btnExportExcel) {
+                btnExportExcel.addEventListener('click', exportToExcel);
+            }
 
             // Inisialisasi awal UI & Firebase secara aman setelah DOM siap
             initClassConfigurations(); 
