@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Pembagian Kelas & Denah - SMPN 2 Kedungbanteng</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS for Excel Import/Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Firebase SDKs (v11.6.1) -->
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        /* Utilitas untuk membuat logo putih menyatu dengan background secara transparan */
+        .logo-transparent {
+            mix-blend-mode: multiply;
+            filter: contrast(1.1) brightness(1.0);
+        }
+        @media print {
+            .no-print, header, main, footer, #toast-container {
+                display: none !important;
+            }
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            #print-area {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100% !important;
+            }
+            .print-page {
+                display: block !important;
+                page-break-after: always !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 1.5cm !important;
+                box-shadow: none !important;
+                border: none !important;
+                background: white !important;
+            }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+    <header class="bg-blue-900 text-white shadow-md no-print">
+        <div class="container mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-white p-1 rounded-lg shadow flex items-center justify-center w-14 h-14 overflow-hidden">
+                    <!-- Ditambahkan class logo-transparent agar gambar menyatu dengan latar belakang secara rapi -->
+                    <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-full h-full object-contain logo-transparent" alt="Logo SMPN 2 Kedungbanteng" onerror="this.style.display='none'">
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight">SMP NEGERI 2 KEDUNGBANTENG</h1>
+                    <p class="text-xs text-blue-200">Sistem Penyusunan & Pembagian Kelas Baru VII</p>
+                </div>
+            </div>
+            
+            <!-- Firebase Status Indicator -->
+            <div class="flex items-center gap-3">
+                <div id="firebase-status" class="flex items-center gap-2 text-xs bg-red-950/40 text-red-300 px-3 py-1.5 rounded-full border border-red-800">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
+                    <span id="firebase-status-text">Cloud Offline (Belum Dikonfigurasi)</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs bg-blue-800/50 px-3 py-1.5 rounded-full border border-blue-700">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>Tahun Ajaran Aktif</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-6 max-w-7xl no-print">
+        <!-- Toast Notification Area -->
+        <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 no-print"></div>
+
+        <!-- Dashboard Grid Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 no-print">
+            
+            <!-- Left Panel: Configuration & Import -->
+            <div class="lg:col-span-5 flex flex-col gap-6">
+                
+                <!-- 1. Configuration Card -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                    <div class="flex items-center justify-between mb-4 border-b pb-3 border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="sliders" class="text-blue-600 w-5 h-5"></i>
+                            <h2 class="font-bold text-lg text-slate-900">Pengaturan Umum & Dokumen</h2>
+                        </div>
+                        <span id="autosave-indicator" class="text-[10px] text-slate-400 italic hidden flex items-center gap-1">
+                            <i data-lucide="cloud-lightning" class="w-3 h-3 text-emerald-500 animate-bounce"></i> Tersimpan di Cloud
+                        </span>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Tahun Ajaran</label>
+                                <input type="text" id="config-ta" value="2026/2027" class="config-input w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm font-semibold">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Tanggal Dokumen</label>
+                                <input type="text" id="config-date" value="Kedungbanteng, 26 Juni 2026" class="config-input w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Target Per Kelas</label>
+                                <select id="config-capacity" class="config-input w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm">
+                                    <option value="32" selected>32 Siswa</option>
+                                    <option value="34">34 Siswa</option>
+                                    <option value="36">36 Siswa</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Jumlah Kelas</label>
+                                <input type="number" id="config-classes" value="7" min="1" max="15" class="config-input w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm font-bold text-blue-600">
+                            </div>
+                        </div>
+
+                        <!-- Kepala Sekolah Sign Settings -->
+                        <div class="border-t pt-3 border-slate-100">
+                            <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                <i data-lucide="user-check" class="w-3.5 h-3.5 text-blue-600"></i>
+                                Tanda Tangan Kepala Sekolah
+                            </h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <input type="text" id="config-kepsek-name" value="IRMA PUJIATI, S.Pd., M.Pd." placeholder="Nama Kepala Sekolah" class="config-input w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs">
+                                <input type="text" id="config-kepsek-nip" value="NIP. 197212031998022003" placeholder="NIP Kepala Sekolah" class="config-input w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Dynamic Class Customization Accordion/List -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                    <div class="flex items-center justify-between mb-4 border-b pb-3 border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="settings-2" class="text-blue-600 w-5 h-5"></i>
+                            <h2 class="font-bold text-lg text-slate-900">Tipe Kelas & Wali Kelas</h2>
+                        </div>
+                        <span class="text-[10px] bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-full font-bold uppercase">Kustom</span>
+                    </div>
+
+                    <p class="text-xs text-slate-500 mb-4">
+                        Atur tipe pembagian (Reguler / Akademik / Prestasi) serta nama & NIP Wali Kelas secara spesifik untuk masing-masing kelas di bawah ini.
+                    </p>
+
+                    <!-- Scrollable Container of Class Settings -->
+                    <div id="class-settings-list" class="space-y-3 max-h-[320px] overflow-y-auto pr-1 scrollbar-thin">
+                        <!-- Dynamic Class Customizer Rows will go here -->
+                    </div>
+                </div>
+
+                <!-- 3. Import Excel Card -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                    <div class="flex items-center gap-2 mb-4 border-b pb-3 border-slate-100">
+                        <i data-lucide="file-spreadsheet" class="text-blue-600 w-5 h-5"></i>
+                        <h2 class="font-bold text-lg text-slate-900">Input Data Siswa</h2>
+                    </div>
+
+                    <!-- Dropzone Area -->
+                    <div id="dropzone" class="border-2 border-dashed border-slate-200 hover:border-blue-500 rounded-xl p-5 text-center cursor-pointer transition bg-slate-50 hover:bg-blue-50/20 group">
+                        <input type="file" id="file-input" accept=".xlsx, .xls, .csv" class="hidden">
+                        <i data-lucide="upload-cloud" class="w-8 h-8 text-slate-400 group-hover:text-blue-600 mx-auto mb-2 transition"></i>
+                        <p class="text-xs font-semibold text-slate-700">Pilih atau Seret File Excel PMB</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Format: .xlsx / .xls / .csv</p>
+                    </div>
+
+                    <div class="mt-4 flex flex-col gap-2">
+                        <!-- Load Demo Data Button -->
+                        <button id="btn-demo" class="w-full py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs transition flex items-center justify-center gap-2">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+                            Gunakan Data Simulasi (240 Siswa)
+                        </button>
+                        <!-- Download Template -->
+                        <button id="btn-template" class="w-full py-2 px-4 bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 rounded-xl font-semibold text-xs transition flex items-center justify-center gap-2">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                            Unduh Template Excel
+                        </button>
+                    </div>
+
+                    <!-- Process/Generate Button -->
+                    <button id="btn-process" class="w-full mt-4 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform active:scale-[0.98]">
+                        <i data-lucide="play" class="w-4 h-4 fill-white"></i>
+                        Susun & Bagi Kelas
+                    </button>
+                </div>
+
+                <!-- Stats Summary Panel -->
+                <div id="quick-stats" class="bg-gradient-to-br from-blue-900 to-indigo-950 text-white rounded-2xl p-6 shadow-md hidden">
+                    <h3 class="font-bold text-sm text-blue-200 uppercase tracking-widest mb-3">Statistik Data Masuk</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white/10 p-3 rounded-xl">
+                            <p class="text-xs text-blue-300">Total Siswa</p>
+                            <p class="text-xl font-bold" id="stat-total-students">0</p>
+                        </div>
+                        <div class="bg-white/10 p-3 rounded-xl">
+                            <p class="text-xs text-blue-300">Laki-Laki (L)</p>
+                            <p class="text-xl font-bold" id="stat-boys">0</p>
+                        </div>
+                        <div class="bg-white/10 p-3 rounded-xl">
+                            <p class="text-xs text-blue-300">Perempuan (P)</p>
+                            <p class="text-xl font-bold" id="stat-girls">0</p>
+                        </div>
+                        <div class="bg-white/10 p-3 rounded-xl">
+                            <p class="text-xs text-blue-300">Punya Prestasi</p>
+                            <p class="text-xl font-bold" id="stat-prestasi">0</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Panel: Processing, Result Tabs, Visualizer -->
+            <div class="lg:col-span-7 flex flex-col gap-6">
+                
+                <!-- Main Processing State Card -->
+                <div id="main-state-card" class="bg-white rounded-2xl p-12 text-center border border-slate-100 shadow-sm flex flex-col items-center justify-center min-h-[400px]">
+                    <div class="bg-blue-50 p-4 rounded-full text-blue-600 mb-4 animate-bounce">
+                        <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-16 h-16 object-contain" alt="Logo SMPN 2 Kedungbanteng">
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-800">Menunggu Unggahan Data</h3>
+                    <p class="text-slate-500 max-w-md mx-auto mt-2 text-sm leading-relaxed">
+                        Silakan unggah berkas Excel atau gunakan tombol <span class="font-semibold text-blue-600">Data Simulasi</span>, lalu sesuaikan pemetaan Wali Kelas sebelum menekan tombol <span class="font-semibold text-blue-600">Susun & Bagi Kelas</span>.
+                    </p>
+                </div>
+
+                <!-- Result Card (Tabs of Classes) -->
+                <div id="result-card" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hidden">
+                    
+                    <!-- Tabs Navigation -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b border-slate-100 pb-4">
+                        <div>
+                            <h2 class="font-extrabold text-xl text-slate-900 flex items-center gap-2">
+                                <i data-lucide="check-circle" class="text-emerald-500 w-6 h-6"></i>
+                                Hasil Penyusunan Kelas
+                            </h2>
+                            <p class="text-xs text-slate-500 mt-0.5">Komposisi seimbang sesuai rasio gender, sekolah asal, dan tipe kelas.</p>
+                        </div>
+
+                        <!-- Global Export Controls -->
+                        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                            <button id="btn-export-excel" class="flex-grow sm:flex-grow-0 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 shadow-sm">
+                                <i data-lucide="file-down" class="w-4 h-4"></i>
+                                Ekspor Semua Kelas (Excel)
+                            </button>
+                            <button id="btn-print-all" class="flex-grow sm:flex-grow-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 shadow-sm">
+                                <i data-lucide="printer" class="w-4 h-4"></i>
+                                Cetak Semua PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Mode Tab Toggles: List vs Seating Chart -->
+                    <div class="flex gap-2 mb-4 bg-slate-100 p-1 rounded-xl w-fit">
+                        <button id="toggle-list-view" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-800 shadow-sm transition flex items-center gap-1.5">
+                            <i data-lucide="list" class="w-3.5 h-3.5"></i>
+                            Daftar Siswa
+                        </button>
+                        <button id="toggle-seating-view" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-800 transition flex items-center gap-1.5">
+                            <i data-lucide="grid-3x3" class="w-3.5 h-3.5"></i>
+                            Denah Tempat Duduk
+                        </button>
+                    </div>
+
+                    <!-- Class Letters Tab Navigation -->
+                    <div class="flex gap-1.5 overflow-x-auto pb-2 mb-6 scrollbar-thin scrollbar-thumb-slate-200" id="class-tabs">
+                        <!-- Dynamic generated tabs of classes -->
+                    </div>
+
+                    <!-- Dynamic Content Panel -->
+                    <div id="dynamic-content-area">
+                        <!-- Content of selected class (Table / Seating Layout) -->
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- PRINT PREVIEW CONTAINER (ONLY VISIBLE ON PRINT) -->
+    <div id="print-area" class="hidden">
+        <!-- Dynamic printable pages go here -->
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-6 border-t border-slate-800 mt-12 no-print">
+        <div class="container mx-auto px-4 text-center text-xs">
+            <p class="font-semibold text-slate-300">SMP NEGERI 2 KEDUNGBANTENG</p>
+            <p class="mt-1">Sistem Distribusi & Layout Ruang Kelas Terautomasi © 2026. Dioptimalkan untuk Standar Pendidikan Nasional.</p>
+        </div>
+    </footer>
+
+    <!-- JS LOGIC AND ALGORITHMS -->
+    <script>
+        // Global State
+        let rawStudents = [];
+        let distributedClasses = [];
+        let activeClassIndex = 0;
+        let viewMode = 'list'; // 'list' or 'seating'
+        let classConfigurations = []; // To store customized wali kelas name, NIP and class types dynamically.
+
+        // Firebase Configuration (Ganti dengan konfigurasi Firebase milik Anda nanti)
+        const firebaseConfig = {
+            apiKey: "", // Diisi saat upload atau biarkan kosong jika hanya integrasi dasar
+            authDomain: "smpn2-kedungbanteng.firebaseapp.com",
+            projectId: "smpn2-kedungbanteng",
+            storageBucket: "smpn2-kedungbanteng.appspot.com",
+            messagingSenderId: "1234567890",
+            appId: "1:1234567890:web:abcdef123456"
+        };
+
+        let db = null;
+        let isFirebaseActive = false;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'smpn2-kedungbanteng-app';
+
+        // Inisialisasi Firebase secara dinamis dan aman
+        function initFirebase() {
+            try {
+                // Memeriksa apakah konfigurasi Firebase valid dan siap digunakan
+                if (firebaseConfig.projectId && firebaseConfig.projectId !== "smpn2-kedungbanteng") {
+                    firebase.initializeApp(firebaseConfig);
+                    db = firebase.firestore();
+                    isFirebaseActive = true;
+                    
+                    // Update Indikator UI ke mode Online
+                    const statusDiv = document.getElementById('firebase-status');
+                    statusDiv.className = "flex items-center gap-2 text-xs bg-emerald-950/40 text-emerald-300 px-3 py-1.5 rounded-full border border-emerald-800";
+                    statusDiv.innerHTML = `
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>Cloud Terhubung</span>
+                    `;
+                    
+                    // Load Konfigurasi Tersimpan dari Cloud
+                    loadConfigFromFirestore();
+                } else {
+                    // Coba membaca data fallback dari environment global jika dijalankan di platform terintegrasi
+                    if (typeof __firebase_config !== 'undefined') {
+                        const envConfig = JSON.parse(__firebase_config);
+                        firebase.initializeApp(envConfig);
+                        db = firebase.firestore();
+                        isFirebaseActive = true;
+
+                        const statusDiv = document.getElementById('firebase-status');
+                        statusDiv.className = "flex items-center gap-2 text-xs bg-emerald-950/40 text-emerald-300 px-3 py-1.5 rounded-full border border-emerald-800";
+                        statusDiv.innerHTML = `
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span>Cloud Terhubung (Platform)</span>
+                        `;
+                        loadConfigFromFirestore();
+                    }
+                }
+            } catch (err) {
+                console.warn("Firebase gagal terhubung. Menggunakan penyimpanan lokal/memori.", err);
+            }
+        }
+
+        // DOM Elements
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('file-input');
+        const btnDemo = document.getElementById('btn-demo');
+        const btnTemplate = document.getElementById('btn-template');
+        const btnProcess = document.getElementById('btn-process');
+        const mainStateCard = document.getElementById('main-state-card');
+        const resultCard = document.getElementById('result-card');
+        const quickStats = document.getElementById('quick-stats');
+        const classTabs = document.getElementById('class-tabs');
+        const dynamicContentArea = document.getElementById('dynamic-content-area');
+        const toggleListView = document.getElementById('toggle-list-view');
+        const toggleSeatingView = document.getElementById('toggle-seating-view');
+        const btnExportExcel = document.getElementById('btn-export-excel');
+        const btnPrintAll = document.getElementById('btn-print-all');
+        const printArea = document.getElementById('print-area');
+        const classSettingsList = document.getElementById('class-settings-list');
+        const configClassesInput = document.getElementById('config-classes');
+
+        // Toast Notification System
+        function showToast(title, message, type = 'info') {
+            const toastContainer = document.getElementById('toast-container');
+            if (!toastContainer) return;
+            
+            const toast = document.createElement('div');
+            toast.className = `flex items-start gap-3 p-4 rounded-xl shadow-lg border text-sm max-w-sm transition-all duration-300 transform translate-y-2 opacity-0`;
+            
+            let bgClass = "bg-white border-slate-100";
+            let textClass = "text-slate-800";
+            let iconMarkup = "";
+
+            if (type === 'success') {
+                bgClass = "bg-emerald-50 border-emerald-200";
+                textClass = "text-emerald-900";
+                iconMarkup = `<i data-lucide="check-circle-2" class="text-emerald-500 w-5 h-5 flex-shrink-0"></i>`;
+            } else if (type === 'error') {
+                bgClass = "bg-rose-50 border-rose-200";
+                textClass = "text-rose-900";
+                iconMarkup = `<i data-lucide="alert-triangle" class="text-rose-500 w-5 h-5 flex-shrink-0"></i>`;
+            } else {
+                bgClass = "bg-blue-50 border-blue-200";
+                textClass = "text-blue-900";
+                iconMarkup = `<i data-lucide="info" class="text-blue-500 w-5 h-5 flex-shrink-0"></i>`;
+            }
+
+            toast.className += ` ${bgClass} ${textClass}`;
+            toast.innerHTML = `
+                ${iconMarkup}
+                <div>
+                    <h4 class="font-bold">${title}</h4>
+                    <p class="text-xs opacity-90 mt-0.5">${message}</p>
+                </div>
+            `;
+
+            toastContainer.appendChild(toast);
+            lucide.createIcons({ attrs: { class: 'w-5 h-5' } });
+            
+            // Animate In
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 50);
+
+            // Animate Out
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 4000);
+        }
+
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Helper function: Text Proper Case
+        function toProperCase(str) {
+            if (!str) return '';
+            let cleanStr = String(str).replace(/\s+/g, ' ').trim();
+            return cleanStr.split(' ').map(word => {
+                const upper = word.toUpperCase();
+                if (['SD', 'SDN', 'MI', 'MIM', 'MIN', 'SMP', 'SMA', 'SMK', 'MA', 'MTS', 'PMB', 'VII', 'VIII', 'IX', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].includes(upper)) {
+                    return upper;
+                }
+                if (word.includes("'")) {
+                    return word.split("'").map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join("'");
+                }
+                if (word.includes("-")) {
+                    return word.split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join("-");
+                }
+                return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+            }).join(' ');
+        }
+
+        // Initialize Dynamic Class Configurations
+        function initClassConfigurations() {
+            const classCount = parseInt(configClassesInput.value) || 7;
+            const currentConfigs = [...classConfigurations];
+            classConfigurations = [];
+
+            classSettingsList.innerHTML = '';
+
+            for (let i = 0; i < classCount; i++) {
+                const letter = String.fromCharCode(65 + i); // A, B, C, etc.
+                const existing = currentConfigs.find(c => c.letter === letter);
+
+                let defaultType = 'reguler';
+                if (i === 6) defaultType = 'prestasi';
+                else if (i < 2) defaultType = 'akademik';
+
+                const configObj = {
+                    letter: letter,
+                    type: existing ? existing.type : defaultType,
+                    waliKelas: existing ? existing.waliKelas : `Wali Kelas VII ${letter}`,
+                    nip: existing ? existing.nip : ''
+                };
+
+                classConfigurations.push(configObj);
+
+                const row = document.createElement('div');
+                row.className = "p-3 bg-slate-50 rounded-xl border border-slate-200/60 flex flex-col gap-2";
+                row.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-extrabold text-blue-900">KELAS VII ${letter}</span>
+                        <select data-letter="${letter}" class="class-type-select px-2 py-1 text-[11px] bg-white border border-slate-200 rounded font-bold text-slate-700">
+                            <option value="reguler" ${configObj.type === 'reguler' ? 'selected' : ''}>Reguler</option>
+                            <option value="akademik" ${configObj.type === 'akademik' ? 'selected' : ''}>Akademik (Unggulan)</option>
+                            <option value="prestasi" ${configObj.type === 'prestasi' ? 'selected' : ''}>Prestasi (Sertifikat)</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" placeholder="Nama Wali Kelas" data-letter="${letter}" class="class-wali-input px-2 py-1 text-xs border border-slate-200 bg-white rounded animate-pulse-once" value="${configObj.waliKelas}">
+                        <input type="text" placeholder="NIP Wali Kelas" data-letter="${letter}" class="class-nip-input px-2 py-1 text-xs border border-slate-200 bg-white rounded" value="${configObj.nip}">
+                    </div>
+                `;
+                classSettingsList.appendChild(row);
+            }
+
+            // Bind update listeners
+            document.querySelectorAll('.class-type-select').forEach(el => {
+                el.addEventListener('change', (e) => {
+                    const letter = e.target.getAttribute('data-letter');
+                    const conf = classConfigurations.find(c => c.letter === letter);
+                    if (conf) {
+                        conf.type = e.target.value;
+                        triggerAutosave();
+                    }
+                });
+            });
+            document.querySelectorAll('.class-wali-input').forEach(el => {
+                el.addEventListener('change', (e) => {
+                    const letter = e.target.getAttribute('data-letter');
+                    const conf = classConfigurations.find(c => c.letter === letter);
+                    if (conf) {
+                        conf.waliKelas = toProperCase(e.target.value);
+                        triggerAutosave();
+                    }
+                });
+            });
+            document.querySelectorAll('.class-nip-input').forEach(el => {
+                el.addEventListener('change', (e) => {
+                    const letter = e.target.getAttribute('data-letter');
+                    const conf = classConfigurations.find(c => c.letter === letter);
+                    if (conf) {
+                        conf.nip = e.target.value;
+                        triggerAutosave();
+                    }
+                });
+            });
+        }
+
+        configClassesInput.addEventListener('change', () => {
+            initClassConfigurations();
+            triggerAutosave();
+        });
+        configClassesInput.addEventListener('keyup', () => {
+            initClassConfigurations();
+            triggerAutosave();
+        });
+
+        // Bind Autosave ke Input Pengaturan Umum
+        document.querySelectorAll('.config-input').forEach(el => {
+            el.addEventListener('change', triggerAutosave);
+        });
+
+        // CLOUD FUNCTIONS: Simpan & Muat Config dengan Firestore (Realtime Autosave)
+        let saveTimeout = null;
+        function triggerAutosave() {
+            if (!isFirebaseActive) return;
+
+            const indicator = document.getElementById('autosave-indicator');
+            indicator.classList.remove('hidden');
+            indicator.innerHTML = `<i data-lucide="refresh-cw" class="w-3 h-3 text-blue-500 animate-spin"></i> Menyimpan...`;
+            lucide.createIcons();
+
+            // Debounce: Menghindari overload hit database saat user mengetik cepat
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                try {
+                    const docData = {
+                        tahunAjaran: document.getElementById('config-ta').value,
+                        tanggalDokumen: document.getElementById('config-date').value,
+                        targetKapasitas: document.getElementById('config-capacity').value,
+                        jumlahKelas: document.getElementById('config-classes').value,
+                        kepsekNama: document.getElementById('config-kepsek-name').value,
+                        kepsekNip: document.getElementById('config-kepsek-nip').value,
+                        classConfigurations: classConfigurations,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+
+                    // Menyimpan ke path Firestore sesuai aturan platform
+                    await db.collection('artifacts').doc(appId).collection('public').doc('data').set(docData);
+                    
+                    indicator.innerHTML = `<i data-lucide="cloud-lightning" class="w-3 h-3 text-emerald-500"></i> Tersimpan di Cloud`;
+                    lucide.createIcons();
+                } catch (err) {
+                    console.error("Gagal melakukan sinkronisasi cloud", err);
+                    indicator.innerHTML = `<span class="text-rose-500">Gagal Sinkron</span>`;
+                }
+            }, 800);
+        }
+
+        async function loadConfigFromFirestore() {
+            if (!isFirebaseActive) return;
+
+            try {
+                const docRef = db.collection('artifacts').doc(appId).collection('public').doc('data');
+                const doc = await docRef.get();
+
+                if (doc.exists) {
+                    const data = doc.data();
+                    
+                    document.getElementById('config-ta').value = data.tahunAjaran || '2026/2027';
+                    document.getElementById('config-date').value = data.tanggalDokumen || 'Kedungbanteng, 26 Juni 2026';
+                    document.getElementById('config-capacity').value = data.targetKapasitas || '32';
+                    document.getElementById('config-classes').value = data.jumlahKelas || '7';
+                    document.getElementById('config-kepsek-name').value = data.kepsekNama || 'IRMA PUJIATI, S.Pd., M.Pd.';
+                    document.getElementById('config-kepsek-nip').value = data.kepsekNip || 'NIP. 197212031998022003';
+
+                    if (data.classConfigurations && data.classConfigurations.length > 0) {
+                        classConfigurations = data.classConfigurations;
+                    }
+
+                    // Muat ulang UI setelan kelas agar sinkron dengan data cloud
+                    initClassConfigurations();
+                    showToast("Sinkronisasi Sukses", "Konfigurasi terakhir berhasil dimuat dari database cloud.", "success");
+                }
+            } catch (err) {
+                console.error("Gagal membaca konfigurasi cloud", err);
+            }
+        }
+
+        // Jalankan inisialisasi awal UI
+        initClassConfigurations();
+
+        // Trigger file picker
+        dropzone.addEventListener('click', () => fileInput.click());
+
+        // Drag & Drop
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('border-blue-500', 'bg-blue-50/30');
+        });
+
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('border-blue-500', 'bg-blue-50/30');
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('border-blue-500', 'bg-blue-50/30');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Load Demo Data
+        btnDemo.addEventListener('click', () => {
+            rawStudents = generateDemoData();
+            showToast("Sukses!", "Data simulasi sebanyak 240 siswa berhasil dimuat.", "success");
+            processAndDistribute();
+        });
+
+        // Download Template
+        btnTemplate.addEventListener('click', () => {
+            downloadExcelTemplate();
+        });
+
+        // Process Class Distribution manually
+        btnProcess.addEventListener('click', () => {
+            if (rawStudents.length === 0) {
+                showToast("Data Kosong", "Silakan unggah file Excel atau klik tombol 'Gunakan Data Simulasi' terlebih dahulu.", "error");
+                return;
+            }
+            processAndDistribute();
+        });
+
+        // Toggle Views
+        toggleListView.addEventListener('click', () => setViewMode('list'));
+        toggleSeatingView.addEventListener('click', () => setViewMode('seating'));
+
+        // Parse Excel File
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                    if (jsonData.length === 0) {
+                        showToast("File Kosong", "Excel tidak memiliki baris data.", "error");
+                        return;
+                    }
+
+                    const mapped = jsonData.map((row, index) => {
+                        const findValue = (possibleKeys) => {
+                            for (let key of Object.keys(row)) {
+                                if (possibleKeys.includes(key.toLowerCase().trim())) {
+                                    return row[key];
+                                }
+                            }
+                            return null;
+                        };
+
+                        const nisn = findValue(['nisn', 'no pendaftaran', 'no', 'nopendaftaran', 'id', 'pendaftaran']) || `PMB-${1000 + index}`;
+                        const namaSiswaRaw = findValue(['nama siswa', 'nama', 'nama lengkap', 'namasiswa']) || 'Tanpa Nama';
+                        const jenisKelamin = String(findValue(['jenis kelamin', 'jk', 'gender', 'sex', 'j_kelamin']) || 'L').toUpperCase().trim();
+                        const skorNilai = parseFloat(findValue(['skor nilai', 'nilai', 'skor', 'skornilai', 'un']) || 0);
+                        const namaSekolahRaw = findValue(['nama sekolah', 'sekolah', 'sekolah asal', 'asal sekolah', 'namasekolah']) || 'SD';
+                        const prestasi = String(findValue(['prestasi sertifikat', 'prestasi', 'sertifikat', 'keterangan']) || '').trim();
+
+                        return {
+                            nisn: String(nisn).trim().toUpperCase(),
+                            namaSiswa: toProperCase(namaSiswaRaw),
+                            jenisKelamin: (jenisKelamin.startsWith('P') || jenisKelamin === 'PEREMPUAN') ? 'P' : 'L',
+                            skorNilai,
+                            namaSekolah: toProperCase(namaSekolahRaw),
+                            prestasi: (prestasi.toLowerCase() === 'sertifikat' || prestasi.toLowerCase() === 'ada') ? 'Sertifikat' : 'Kosong'
+                        };
+                    });
+
+                    rawStudents = mapped;
+                    showToast("Impor Berhasil", `${rawStudents.length} siswa berhasil dimuat. Silakan klik 'Susun & Bagi Kelas' untuk memproses.`, "success");
+                    renderStatsPanel();
+                    
+                    quickStats.classList.remove('hidden');
+
+                } catch (error) {
+                    console.error(error);
+                    showToast("Gagal Membaca File", "Terjadi kesalahan saat memproses file Excel.", "error");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Smart School Name Normalization
+        function normalizeSchool(name) {
+            if (!name) return "SD SEBELUMNYA";
+            let clean = name.toLowerCase().trim();
+
+            clean = clean.replace(/sekolah dasar negeri|sekolah dasar negri|sd negeri|sd negri|sd\s+n\s*/g, 'sd ');
+            clean = clean.replace(/madrasah ibtidaiyah muhammadiyah|mi muhammadiyah|mim\s*/g, 'mim ');
+            clean = clean.replace(/madrasah ibtidaiyah ma'arif|madrasah ibtidaiyah maarif|mi ma'arif|mi maarif/g, 'mi maarif');
+            clean = clean.replace(/madrasah ibtidaiyah|mi\s+n|mi\s*/g, 'mi ');
+            clean = clean.replace(/sd\s+isla+m/g, 'sd islam');
+            clean = clean.replace(/sd\s+swasta/g, 'sd swasta');
+
+            clean = clean.replace(/[^a-z0-9\s]/g, '');
+            clean = clean.replace(/\s+/g, ' ').trim();
+
+            return clean.toUpperCase();
+        }
+
+        // DISTRIBUTION ALGORITHM UTILIZING CUSTOM CLASS ALLOCATION
+        function processAndDistribute() {
+            if (rawStudents.length === 0) return;
+
+            const capacityPerClass = parseInt(document.getElementById('config-capacity').value);
+            const classCountInput = parseInt(document.getElementById('config-classes').value);
+
+            const totalStudents = rawStudents.length;
+            const classCount = Math.max(classCountInput, Math.ceil(totalStudents / capacityPerClass));
+
+            if (classCount > classCountInput) {
+                showToast("Penyesuaian Kelas", `Jumlah kelas disesuaikan menjadi ${classCount} agar dapat menampung ${totalStudents} siswa secara adil.`, "info");
+                document.getElementById('config-classes').value = classCount;
+                initClassConfigurations();
+            }
+
+            let classes = [];
+            classConfigurations.forEach((conf) => {
+                classes.push({
+                    id: conf.letter,
+                    letter: conf.letter,
+                    name: `VII ${conf.letter}`,
+                    type: conf.type,
+                    waliKelas: conf.waliKelas,
+                    nip: conf.nip,
+                    students: [],
+                    capacity: capacityPerClass,
+                    targetBoys: 0,
+                    targetGirls: 0
+                });
+            });
+
+            let pool = rawStudents.map(s => ({ ...s, normalizedSchool: normalizeSchool(s.namaSekolah) }));
+            const totalL = pool.filter(s => s.jenisKelamin === 'L').length;
+            const totalP = pool.filter(s => s.jenisKelamin === 'P').length;
+
+            let remainingL = totalL;
+            let remainingP = totalP;
+
+            classes.forEach((c, idx) => {
+                if (idx < classCount - 1) {
+                    const ratioL = remainingL / (remainingL + remainingP || 1);
+                    let idealB = ratioL * c.capacity;
+
+                    let targetB = 2 * Math.round(idealB / 2);
+
+                    if (targetB > remainingL) {
+                        targetB = 2 * Math.floor(remainingL / 2);
+                    }
+                    if (c.capacity - targetB > remainingP) {
+                        const neededP = c.capacity - targetB;
+                        const diff = neededP - remainingP;
+                        targetB += 2 * Math.ceil(diff / 2);
+                    }
+
+                    targetB = Math.max(0, Math.min(c.capacity, targetB));
+                    let targetG = c.capacity - targetB;
+
+                    c.targetBoys = targetB;
+                    c.targetGirls = targetG;
+
+                    remainingL -= targetB;
+                    remainingP -= targetG;
+                } else {
+                    c.targetBoys = remainingL;
+                    c.targetGirls = remainingP;
+                }
+            });
+
+            let prestasiBoys = pool.filter(s => s.prestasi === 'Sertifikat' && s.jenisKelamin === 'L');
+            let prestasiGirls = pool.filter(s => s.prestasi === 'Sertifikat' && s.jenisKelamin === 'P');
+            
+            let mainBoys = pool.filter(s => s.prestasi !== 'Sertifikat' && s.jenisKelamin === 'L');
+            let mainGirls = pool.filter(s => s.prestasi !== 'Sertifikat' && s.jenisKelamin === 'P');
+
+            classes.forEach(c => {
+                if (c.type === 'prestasi') {
+                    const boysToTake = Math.min(c.targetBoys, prestasiBoys.length);
+                    const takenBoys = prestasiBoys.splice(0, boysToTake);
+                    c.students.push(...takenBoys);
+
+                    const girlsToTake = Math.min(c.targetGirls, prestasiGirls.length);
+                    const takenGirls = prestasiGirls.splice(0, girlsToTake);
+                    c.students.push(...takenGirls);
+                }
+            });
+
+            mainBoys = [...mainBoys, ...prestasiBoys];
+            mainGirls = [...mainGirls, ...prestasiGirls];
+
+            mainBoys.sort((a, b) => b.skorNilai - a.skorNilai);
+            mainGirls.sort((a, b) => b.skorNilai - a.skorNilai);
+
+            classes.forEach(c => {
+                if (c.type === 'akademik') {
+                    const curBoys = c.students.filter(s => s.jenisKelamin === 'L').length;
+                    const curGirls = c.students.filter(s => s.jenisKelamin === 'P').length;
+
+                    const boysNeeded = c.targetBoys - curBoys;
+                    const girlsNeeded = c.targetGirls - curGirls;
+
+                    if (boysNeeded > 0) {
+                        const takenBoys = mainBoys.splice(0, boysNeeded);
+                        c.students.push(...takenBoys);
+                    }
+                    if (girlsNeeded > 0) {
+                        const takenGirls = mainGirls.splice(0, girlsNeeded);
+                        c.students.push(...takenGirls);
+                    }
+                }
+            });
+
+            const getSchoolGroups = (genderPool) => {
+                const groups = {};
+                genderPool.forEach(student => {
+                    if (!groups[student.normalizedSchool]) {
+                        groups[student.normalizedSchool] = [];
+                    }
+                    groups[student.normalizedSchool].push(student);
+                });
+                return groups;
+            };
+
+            let boyGroups = getSchoolGroups(mainBoys);
+            let girlGroups = getSchoolGroups(mainGirls);
+
+            const distributeGenderGroups = (groups, isBoys) => {
+                let sortedSchools = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length);
+
+                sortedSchools.forEach(school => {
+                    let students = groups[school];
+
+                    while (students.length > 0) {
+                        let eligibleClasses = classes.filter(c => {
+                            const currentOfGender = c.students.filter(s => s.jenisKelamin === (isBoys ? 'L' : 'P')).length;
+                            const targetOfGender = isBoys ? c.targetBoys : c.targetGirls;
+                            return currentOfGender < targetOfGender;
+                        }).sort((a, b) => {
+                            const currentA = a.students.filter(s => s.jenisKelamin === (isBoys ? 'L' : 'P')).length;
+                            const currentB = b.students.filter(s => s.jenisKelamin === (isBoys ? 'L' : 'P')).length;
+                            return currentA - currentB;
+                        });
+
+                        let bestClass = eligibleClasses[0];
+                        if (!bestClass) break;
+
+                        const targetOfGender = isBoys ? bestClass.targetBoys : bestClass.targetGirls;
+                        const currentOfGender = bestClass.students.filter(s => s.jenisKelamin === (isBoys ? 'L' : 'P')).length;
+                        const spaceLeft = targetOfGender - currentOfGender;
+
+                        const takeCount = Math.min(students.length >= 2 ? 2 : 1, spaceLeft);
+                        const batch = students.splice(0, takeCount);
+
+                        bestClass.students.push(...batch);
+                    }
+                });
+            };
+
+            distributeGenderGroups(boyGroups, true);
+            distributeGenderGroups(girlGroups, false);
+
+            let allAssignedIds = new Set();
+            classes.forEach(c => c.students.forEach(s => allAssignedIds.add(s.nisn)));
+
+            let safetyLeftovers = pool.filter(s => !allAssignedIds.has(s.nisn));
+            if (safetyLeftovers.length > 0) {
+                safetyLeftovers.forEach(s => {
+                    let bestClass = classes.filter(c => c.students.length < c.capacity)
+                        .sort((a, b) => a.students.length - b.students.length)[0];
+                    if (bestClass) {
+                        bestClass.students.push(s);
+                    }
+                });
+            }
+
+            classes.forEach(c => {
+                c.students.sort((a, b) => a.namaSiswa.localeCompare(b.namaSiswa));
+                c.seating = arrangeSeating(c.students);
+            });
+
+            distributedClasses = classes;
+            activeClassIndex = 0;
+
+            renderStatsPanel();
+            renderClassTabs();
+            renderClassContent();
+
+            mainStateCard.classList.add('hidden');
+            resultCard.classList.remove('hidden');
+            quickStats.classList.remove('hidden');
+
+            showToast("Pembagian Selesai", "Siswa berhasil didistribusikan secara proporsional dan genap berpasangan.", "success");
+        }
+
+        // Seating Arrangement Generator (Pairing L-L, P-P)
+        function arrangeSeating(students) {
+            const boys = students.filter(s => s.jenisKelamin === 'L');
+            const girls = students.filter(s => s.jenisKelamin === 'P');
+
+            let pairs = [];
+
+            while (boys.length >= 2) {
+                pairs.push([boys.shift(), boys.shift()]);
+            }
+            while (girls.length >= 2) {
+                pairs.push([girls.shift(), girls.shift()]);
+            }
+
+            if (boys.length > 0 && girls.length > 0) {
+                pairs.push([boys.shift(), girls.shift()]); 
+            } else if (boys.length > 0) {
+                pairs.push([boys.shift(), null]); 
+            } else if (girls.length > 0) {
+                pairs.push([girls.shift(), null]); 
+            }
+
+            return pairs;
+        }
+
+        // Render Stats Panel
+        function renderStatsPanel() {
+            const total = rawStudents.length;
+            const boys = rawStudents.filter(s => s.jenisKelamin === 'L').length;
+            const girls = rawStudents.filter(s => s.jenisKelamin === 'P').length;
+            const prestasi = rawStudents.filter(s => s.prestasi === 'Sertifikat').length;
+
+            document.getElementById('stat-total-students').innerText = total;
+            document.getElementById('stat-boys').innerText = boys;
+            document.getElementById('stat-girls').innerText = girls;
+            document.getElementById('stat-prestasi').innerText = prestasi;
+        }
+
+        // Render Class Letter Tabs
+        function renderClassTabs() {
+            classTabs.innerHTML = '';
+            distributedClasses.forEach((c, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-150 flex items-center gap-1.5 border ${
+                    idx === activeClassIndex 
+                    ? 'bg-blue-900 text-white border-blue-900 shadow-sm' 
+                    : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                }`;
+
+                let badgeColor = "bg-slate-200 text-slate-700";
+                let badgeLabel = "REG";
+                if (c.type === 'akademik') {
+                    badgeColor = "bg-amber-100 text-amber-800 border-amber-200";
+                    badgeLabel = "AKAD";
+                } else if (c.type === 'prestasi') {
+                    badgeColor = "bg-indigo-100 text-indigo-800 border-indigo-200";
+                    badgeLabel = "PRES";
+                }
+
+                btn.innerHTML = `
+                    <span>Kelas VII ${c.letter}</span>
+                    <span class="text-[9px] px-1 py-0.5 rounded font-extrabold border ${badgeColor}">${badgeLabel}</span>
+                    <span class="text-[10px] opacity-70">(${c.students.length})</span>
+                `;
+
+                btn.addEventListener('click', () => {
+                    activeClassIndex = idx;
+                    renderClassTabs();
+                    renderClassContent();
+                });
+
+                classTabs.appendChild(btn);
+            });
+        }
+
+        // View Mode selection
+        function setViewMode(mode) {
+            viewMode = mode;
+            if (mode === 'list') {
+                toggleListView.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-800 shadow-sm transition flex items-center gap-1.5";
+                toggleSeatingView.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-800 transition flex items-center gap-1.5";
+            } else {
+                toggleListView.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-800 transition flex items-center gap-1.5";
+                toggleSeatingView.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-800 shadow-sm transition flex items-center gap-1.5";
+            }
+            renderClassContent();
+        }
+
+        // Render Class Details
+        function renderClassContent() {
+            const activeClass = distributedClasses[activeClassIndex];
+            if (!activeClass) return;
+
+            const boysCount = activeClass.students.filter(s => s.jenisKelamin === 'L').length;
+            const girlsCount = activeClass.students.filter(s => s.jenisKelamin === 'P').length;
+            const avgScore = (activeClass.students.reduce((acc, s) => acc + s.skorNilai, 0) / activeClass.students.length || 0).toFixed(1);
+
+            let html = '';
+
+            html += `
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm">
+                    <div>
+                        <span class="text-xs text-slate-500 block">Total Siswa</span>
+                        <span class="font-extrabold text-slate-800 text-base">${activeClass.students.length} Siswa</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-500 block">Komposisi Gender</span>
+                        <span class="font-bold text-slate-700 text-sm">${boysCount} L / ${girlsCount} P</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-500 block">Rata-rata Nilai</span>
+                        <span class="font-bold text-amber-600 text-sm flex items-center gap-1">
+                            <i data-lucide="star" class="w-3.5 h-3.5 fill-amber-500 text-amber-500"></i> ${avgScore}
+                        </span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-500 block">Wali Kelas</span>
+                        <span class="font-bold text-blue-800 text-sm truncate block" title="${activeClass.waliKelas}">${activeClass.waliKelas}</span>
+                    </div>
+                </div>
+            `;
+
+            if (viewMode === 'list') {
+                html += `
+                    <div class="overflow-x-auto rounded-xl border border-slate-100">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-slate-100 text-slate-700 text-[10px] uppercase font-extrabold">
+                                <tr>
+                                    <th class="px-4 py-3 text-center w-12">NO</th>
+                                    <th class="px-4 py-3">NISN</th>
+                                    <th class="px-4 py-3">NAMA SISWA</th>
+                                    <th class="px-4 py-3 text-center">JENIS KELAMIN</th>
+                                    <th class="px-4 py-3">ASAL SEKOLAH</th>
+                                    <th class="px-4 py-3 text-center">PRESTASI</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-slate-700">
+                `;
+
+                activeClass.students.forEach((s, idx) => {
+                    const bgRow = idx % 2 === 0 ? "bg-white" : "bg-slate-50/50";
+                    const isPrestasi = s.prestasi === 'Sertifikat' 
+                        ? `<span class="bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[9px] font-bold">Ada</span>` 
+                        : `<span class="text-slate-400 text-xs">-</span>`;
+
+                    html += `
+                        <tr class="${bgRow} hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-2 font-bold text-slate-400 text-center">${idx + 1}</td>
+                            <td class="px-4 py-2 font-mono font-semibold text-slate-600">${s.nisn}</td>
+                            <td class="px-4 py-2 font-bold text-slate-900">${s.namaSiswa}</td>
+                            <td class="px-4 py-2 text-center">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-extrabold ${s.jenisKelamin === 'L' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'}">
+                                    ${s.jenisKelamin === 'L' ? 'LAKI-LAKI' : 'PEREMPUAN'}
+                                </span>
+                            </td>
+                            <td class="px-4 py-2 text-slate-600 font-medium">${s.namaSekolah}</td>
+                            <td class="px-4 py-2 text-center">${isPrestasi}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-inner">
+                        <div class="w-full bg-slate-800 text-slate-400 text-center py-2 rounded-xl font-bold border border-slate-700 mb-8 shadow relative flex items-center justify-center gap-2 text-xs">
+                            <i data-lucide="presentation" class="w-4 h-4 text-slate-400"></i>
+                            Papan Tulis & Meja Guru (Depan Kelas)
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                `;
+
+                activeClass.seating.forEach((pair, pairIdx) => {
+                    const studentLeft = pair[0];
+                    const studentRight = pair[1];
+
+                    html += `
+                        <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700 shadow flex flex-col justify-between">
+                            <div class="text-center text-[9px] font-extrabold text-slate-500 mb-2.5 uppercase tracking-wider pb-1 border-b border-slate-700">Meja ${pairIdx + 1}</div>
+                            
+                            <div class="grid grid-cols-2 gap-1.5">
+                                ${studentLeft ? `
+                                    <div class="p-1.5 rounded-lg text-center ${studentLeft.jenisKelamin === 'L' ? 'bg-blue-950/80 border border-blue-800 text-blue-200' : 'bg-rose-950/80 border border-rose-800 text-rose-200'}">
+                                        <div class="w-4 h-4 rounded-full ${studentLeft.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-extrabold mx-auto mb-1">
+                                            ${studentLeft.jenisKelamin}
+                                        </div>
+                                        <div class="text-[10px] font-bold truncate" title="${studentLeft.namaSiswa}">${studentLeft.namaSiswa.split(' ')[0]}</div>
+                                        <div class="text-[8px] opacity-75 mt-0.5 truncate">${studentLeft.namaSekolah.split(' ')[0]}</div>
+                                    </div>
+                                ` : `
+                                    <div class="p-1.5 rounded-lg text-center border border-dashed border-slate-700 bg-slate-900/40 text-slate-600 flex flex-col justify-center items-center min-h-[50px]">
+                                        <span class="text-[9px] font-bold">Kosong</span>
+                                    </div>
+                                `}
+
+                                ${studentRight ? `
+                                    <div class="p-1.5 rounded-lg text-center ${studentRight.jenisKelamin === 'L' ? 'bg-blue-950/80 border border-blue-800 text-blue-200' : 'bg-rose-950/80 border border-rose-800 text-rose-200'}">
+                                        <div class="w-4 h-4 rounded-full ${studentRight.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-extrabold mx-auto mb-1">
+                                            ${studentRight.jenisKelamin}
+                                        </div>
+                                        <div class="text-[10px] font-bold truncate" title="${studentRight.namaSiswa}">${studentRight.namaSiswa.split(' ')[0]}</div>
+                                        <div class="text-[8px] opacity-75 mt-0.5 truncate">${studentRight.namaSekolah.split(' ')[0]}</div>
+                                    </div>
+                                ` : `
+                                    <div class="p-1.5 rounded-lg text-center border border-dashed border-slate-700 bg-slate-900/40 text-slate-600 flex flex-col justify-center items-center min-h-[50px]">
+                                        <span class="text-[9px] font-bold">Kosong</span>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            dynamicContentArea.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        // PREPARE PRINT AREA (Perfect match with uploaded 7G.xlsx formatting)
+        function preparePrintArea() {
+            printArea.innerHTML = '';
+            const ta = document.getElementById('config-ta').value;
+            const docDate = document.getElementById('config-date').value;
+            const kepsekName = document.getElementById('config-kepsek-name').value;
+            const kepsekNip = document.getElementById('config-kepsek-nip').value;
+
+            distributedClasses.forEach((c) => {
+                const boysCount = c.students.filter(s => s.jenisKelamin === 'L').length;
+                const girlsCount = c.students.filter(s => s.jenisKelamin === 'P').length;
+
+                const page = document.createElement('div');
+                page.className = 'print-page bg-white p-8 mb-8 text-black border border-slate-200 shadow-sm';
+                
+                let tableRows = '';
+                c.students.forEach((s, idx) => {
+                    tableRows += `
+                        <tr class="border-b border-slate-400">
+                            <td class="border border-slate-400 px-3 py-1 text-center text-xs">${idx + 1}</td>
+                            <td class="border border-slate-400 px-3 py-1 text-xs font-mono">${s.nisn}</td>
+                            <td class="border border-slate-400 px-3 py-1 text-xs font-bold uppercase">${s.namaSiswa}</td>
+                            <td class="border border-slate-400 px-3 py-1 text-center text-xs">${s.jenisKelamin === 'L' ? 'LAKI-LAKI' : 'PEREMPUAN'}</td>
+                            <td class="border border-slate-400 px-3 py-1 text-xs">${s.namaSekolah}</td>
+                        </tr>
+                    `;
+                });
+
+                let seatingGridHtml = '';
+                c.seating.forEach((pair, pairIdx) => {
+                    const l = pair[0];
+                    const r = pair[1];
+                    seatingGridHtml += `
+                        <div class="border border-slate-400 p-1.5 text-center text-[10px] bg-white">
+                            <div class="font-bold border-b border-slate-300 pb-0.5 mb-1 text-slate-500">Meja ${pairIdx + 1}</div>
+                            <div class="grid grid-cols-2 gap-1">
+                                <div class="bg-slate-100 p-0.5 rounded font-bold truncate">${l ? `[${l.jenisKelamin}] ${l.namaSiswa.split(' ')[0]}` : 'Kosong'}</div>
+                                <div class="bg-slate-100 p-0.5 rounded font-bold truncate">${r ? `[${r.jenisKelamin}] ${r.namaSiswa.split(' ')[0]}` : 'Kosong'}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                page.innerHTML = `
+                    <!-- Header Kop Surat SMP 2 Kedungbanteng (Official) -->
+                    <div class="text-center border-b-4 border-double border-slate-900 pb-2 mb-4">
+                        <div class="flex items-center justify-center gap-4">
+                            <!-- Ditambahkan class logo-transparent agar bersih menyatu -->
+                            <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-16 h-16 object-contain logo-transparent" alt="Logo SMPN 2 Kedungbanteng">
+                            <div>
+                                <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800 leading-tight">DAFTAR NAMA SISWA KELAS VII ${c.letter}</h2>
+                                <h1 class="text-lg font-black tracking-wider uppercase text-slate-900 leading-tight">SEKOLAH MENENGAH PERTAMA NEGERI 2 KEDUNGBANTENG</h1>
+                                <p class="text-[10px] font-bold text-slate-600 tracking-wide uppercase">TAHUN AJARAN ${ta}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="h-4"></div>
+
+                    <!-- Main Student Table -->
+                    <table class="w-full border-collapse border border-slate-400 mb-4 text-xs">
+                        <thead>
+                            <tr class="bg-slate-100 border-b border-slate-400 text-left font-bold text-slate-800">
+                                <th class="border border-slate-400 px-3 py-1 text-center w-10">NO</th>
+                                <th class="border border-slate-400 px-3 py-1 w-28">NISN</th>
+                                <th class="border border-slate-400 px-3 py-1">NAMA</th>
+                                <th class="border border-slate-400 px-3 py-1 text-center w-36">JENIS KELAMIN</th>
+                                <th class="border border-slate-400 px-3 py-1 w-48">ASAL SEKOLAH</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
+
+                    <!-- Recapitulation & Date Info -->
+                    <table class="w-full text-xs font-semibold mb-6">
+                        <tbody>
+                            <tr>
+                                <td class="w-12 py-0.5"></td>
+                                <td class="w-32 py-0.5">LAKI-LAKI</td>
+                                <td class="py-0.5">: ${boysCount}</td>
+                                <td class="text-right py-0.5 italic text-[11px]">${docDate}</td>
+                            </tr>
+                            <tr>
+                                <td class="py-0.5"></td>
+                                <td class="py-0.5">PEREMPUAN</td>
+                                <td class="py-0.5">: ${girlsCount}</td>
+                                <td class="py-0.5"></td>
+                            </tr>
+                            <tr>
+                                <td class="py-0.5"></td>
+                                <td class="py-0.5">JUMLAH</td>
+                                <td class="py-0.5">: ${c.students.length}</td>
+                                <td class="py-0.5"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Signatures Block -->
+                    <div class="grid grid-cols-2 gap-4 mt-8 text-xs">
+                        <div class="text-left pl-12">
+                            <p class="font-bold">Mengetahui,</p>
+                            <p class="font-bold">Kepala Sekolah</p>
+                            <div class="h-16"></div>
+                            <p class="font-extrabold underline uppercase">${kepsekName}</p>
+                            <p class="text-[10px] text-slate-700 font-mono">${kepsekNip}</p>
+                        </div>
+                        <div class="text-left pl-12">
+                            <p class="font-bold">&nbsp;</p>
+                            <p class="font-bold">Wali Kelas VII ${c.letter}</p>
+                            <div class="h-16"></div>
+                            <p class="font-extrabold underline uppercase">${c.waliKelas || '........................................'}</p>
+                            <p class="text-[10px] text-slate-700 font-mono">${c.nip ? 'NIP. ' + c.nip : '........................................'}</p>
+                        </div>
+                    </div>
+
+                    <div class="page-break-before h-4"></div>
+
+                    <!-- Seating Layout Print Page -->
+                    <div class="mt-8 pt-8 border-t border-dashed border-slate-300">
+                        <h4 class="text-[11px] font-extrabold uppercase mb-3 text-slate-700 text-center">DENAH TEMPAT DUDUK VII ${c.letter} (Papan Tulis di Sisi Atas)</h4>
+                        <div class="grid grid-cols-4 gap-2">
+                            ${seatingGridHtml}
+                        </div>
+                    </div>
+                `;
+
+                printArea.appendChild(page);
+            });
+        }
+
+        // EXPORT TO EXCEL
+        function exportToExcel() {
+            if (distributedClasses.length === 0) return;
+            
+            const wb = XLSX.utils.book_new();
+            const ta = document.getElementById('config-ta').value;
+            const docDate = document.getElementById('config-date').value;
+            const kepsekName = document.getElementById('config-kepsek-name').value;
+            const kepsekNip = document.getElementById('config-kepsek-nip').value;
+
+            distributedClasses.forEach((c) => {
+                const sheetData = [];
+                
+                sheetData.push(["DAFTAR NAMA SISWA KELAS VII " + c.letter]);
+                sheetData.push(["SEKOLAH MENENGAH PERTAMA NEGERI 2 KEDUNGBANTENG"]);
+                sheetData.push(["TAHUN AJARAN " + ta]);
+                sheetData.push([]); 
+
+                sheetData.push(["NO", "NISN", "NAMA", "JENIS KELAMIN", "ASAL SEKOLAH"]);
+
+                c.students.forEach((s, idx) => {
+                    sheetData.push([
+                        idx + 1,
+                        s.nisn,
+                        s.namaSiswa.toUpperCase(),
+                        s.jenisKelamin === 'L' ? 'LAKI-LAKI' : 'PEREMPUAN',
+                        s.namaSekolah.toUpperCase()
+                    ]);
+                });
+
+                const boysCount = c.students.filter(s => s.jenisKelamin === 'L').length;
+                const girlsCount = c.students.filter(s => s.jenisKelamin === 'P').length;
+                
+                sheetData.push(["", "LAKI-LAKI", boysCount, "", docDate]);
+                sheetData.push(["", "PEREMPUAN", girlsCount]);
+                sheetData.push(["", "JUMLAH", c.students.length]);
+                sheetData.push([]); 
+
+                sheetData.push(["", "Mengetahui,"]);
+                sheetData.push(["", "Kepala Sekolah", "", "", "Wali Kelas VII " + c.letter]);
+                sheetData.push([]); 
+                sheetData.push([]);
+                sheetData.push([]);
+                sheetData.push(["", kepsekName.toUpperCase(), "", "", c.waliKelas.toUpperCase()]);
+                sheetData.push(["", kepsekNip, "", "", c.nip ? "NIP. " + c.nip : ""]);
+
+                const ws = XLSX.utils.aoa_to_sheet(sheetData);
+                
+                const wscols = [
+                    {wch: 6},  // NO
+                    {wch: 18}, // NISN
+                    {wch: 35}, // NAMA
+                    {wch: 22}, // JENIS KELAMIN
+                    {wch: 30}  // ASAL SEKOLAH
+                ];
+                ws['!cols'] = wscols;
+
+                XLSX.utils.book_append_sheet(wb, ws, `Kelas VII ${c.letter}`);
+            });
+
+            XLSX.writeFile(wb, `Pembagian_Kelas_VII_SMPN2_Kedungbanteng_${ta.replace('/', '-')}.xlsx`);
+            showToast("Ekspor Excel", "File Excel multi-sheet berhasil diunduh.", "success");
+        }
+
+        // Generate Sample Template download
+        function downloadExcelTemplate() {
+            const templateData = [
+                ["NISN", "Nama Siswa", "Jenis Kelamin (P/L)", "Skor Nilai", "Nama Sekolah", "Prestasi Sertifikat"],
+                ["0123456789", "Andi Setiadi", "L", 85.5, "SD Negeri 1 Kedungbanteng", "Kosong"],
+                ["0123456790", "Budi Raharjo", "L", 78.0, "SDN 2 Kedungbanteng", "Sertifikat"],
+                ["0123456791", "Citra Kirana", "P", 92.0, "SD N 1 Purwokerto", "Kosong"],
+                ["0123456792", "Dewi Lestari", "P", 88.5, "MI Ma'arif Kedungbanteng", "Sertifikat"]
+            ];
+
+            const ws = XLSX.utils.aoa_to_sheet(templateData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Template");
+            XLSX.writeFile(wb, "Template_PMB_SMPN2_Kedungbanteng.xlsx");
+            showToast("Template Diunduh", "Gunakan template ini untuk mengisi data Anda.", "info");
+        }
+
+        // Generate Sample Demo Data
+        function generateDemoData() {
+            const firstNamesBoys = ["Agus", "Budi", "Candra", "Dedi", "Eko", "Fajar", "Gilang", "Heri", "Iwan", "Joko", "Kurniawan", "Lutfi", "Mulyono", "Nugroho", "Oki", "Prabowo", "Rian", "Setyawan", "Taufik", "Wahyu", "Yanto"];
+            const firstNamesGirls = ["Anisa", "Berti", "Citra", "Dewi", "Eka", "Fitri", "Gita", "Hana", "Indah", "Juli", "Kartika", "Laras", "Mega", "Novi", "Olivia", "Putri", "Rina", "Sari", "Tari", "Utami", "Wulandari"];
+            const lastNames = ["Saputra", "Wibowo", "Pratama", "Hidayat", "Kurnia", "Santoso", "Suryadi", "Wijaya", "Setyawan", "Nugraha", "Raharjo", "Budiman", "Purnomo", "Setiawan", "Utomo", "Kusuma"];
+            
+            const schools = [
+                "SDN 1 Kedungbanteng", "SD N 1 Kedungbanteng", "SD Negeri 1 Kedungbanteng",
+                "SDN 2 Kedungbanteng", "SD Negeri 2 Kedungbanteng",
+                "MI Ma'arif Kedungbanteng", "MI Maarif Kedungbanteng", "MIM Kedungbanteng",
+                "SDN 1 Beji", "SD N 1 Beji", "SD Negeri 1 Beji",
+                "SDN 2 Beji", "SDN 1 Karangnangka", "MI Ma'arif Karangnangka",
+                "SDN 3 Kedungbanteng", "SD Islam Al-Azhari", "SD Swasta Muhammadiyah"
+            ];
+
+            const list = [];
+            const count = 238; 
+
+            for (let i = 1; i <= count; i++) {
+                const isBoy = Math.random() > 0.46; 
+                const firstName = isBoy 
+                    ? firstNamesBoys[Math.floor(Math.random() * firstNamesBoys.length)] 
+                    : firstNamesGirls[Math.floor(Math.random() * firstNamesGirls.length)];
+                const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+                const namaSiswa = `${firstName} ${lastName}`;
+                
+                const score = parseFloat((65 + Math.random() * 34).toFixed(1)); 
+                const school = schools[Math.floor(Math.random() * schools.length)];
+                const prestasi = Math.random() < 0.15 ? "Sertifikat" : "Kosong";
+
+                list.push({
+                    nisn: String(1203000000 + i),
+                    namaSiswa: toProperCase(namaSiswa),
+                    jenisKelamin: isBoy ? 'L' : 'P',
+                    skorNilai: score,
+                    namaSekolah: toProperCase(school),
+                    prestasi
+                });
+            }
+
+            return list;
+        }
+
+        // Memulai Inisialisasi Koneksi Firebase Firestore saat Window dimuat
+        window.onload = function() {
+            initFirebase();
+        }
+    </script>
+</body>
+</html>
