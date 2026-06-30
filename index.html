@@ -53,7 +53,7 @@
                 width: 100% !important;
                 z-index: 9999999 !important;
             }
-            /* Memaksa cetakan kelas muat dalam tepat 1 lembar halaman A4 */
+            /* Memaksa cetakan kelas muat dalam lembar halaman A4 terpisah */
             .print-page {
                 display: block !important;
                 page-break-after: always !important;
@@ -113,34 +113,7 @@
             <!-- Left Panel: Configuration & Import -->
             <div class="lg:col-span-5 flex flex-col gap-6">
                 
-                <!-- 1. Secure Firebase Credentials Input (Collapsible/Safe Card) -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-                    <button onclick="toggleFirebasePanel()" class="w-full flex items-center justify-between text-left focus:outline-none">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="key-round" class="text-amber-500 w-5 h-5"></i>
-                            <h2 class="font-bold text-base text-slate-900">Koneksi Database Cloud (Firebase)</h2>
-                        </div>
-                        <i id="fb-chevron" data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform"></i>
-                    </button>
-                    
-                    <div id="firebase-panel" class="mt-4 pt-4 border-t border-slate-100 hidden space-y-3">
-                        <p class="text-xs text-slate-500 leading-relaxed">
-                            Aplikasi telah menggunakan konfigurasi Firebase SMPN 2 Kedungbanteng bawaan Anda secara otomatis. Anda tidak perlu memasukkannya lagi secara manual di bawah ini, kecuali jika ingin mengganti database cloud.
-                        </p>
-                        <textarea id="firebase-json-input" rows="5" placeholder='{&#10;  "apiKey": "AIzaSy...",&#10;  "authDomain": "...",&#10;  "projectId": "..."&#10;}' class="w-full p-2.5 font-mono text-xs border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
-                        
-                        <div class="flex gap-2">
-                            <button onclick="saveFirebaseConfig()" class="flex-1 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5">
-                                <i data-lucide="save" class="w-3.5 h-3.5"></i> Simpan Kustom JSON
-                            </button>
-                            <button onclick="clearFirebaseConfig()" class="py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold transition">
-                                Reset Default
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 2. Configuration Card -->
+                <!-- 1. Configuration Card -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
                     <div class="flex items-center justify-between mb-4 border-b pb-3 border-slate-100">
                         <div class="flex items-center gap-2">
@@ -193,7 +166,7 @@
                     </div>
                 </div>
 
-                <!-- 3. Dynamic Class Customization Accordion/List -->
+                <!-- 2. Dynamic Class Customization Accordion/List -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
                     <div class="flex items-center justify-between mb-4 border-b pb-3 border-slate-100">
                         <div class="flex items-center gap-2">
@@ -213,7 +186,7 @@
                     </div>
                 </div>
 
-                <!-- 4. Import Excel Card -->
+                <!-- 3. Import Excel Card -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
                     <div class="flex items-center gap-2 mb-4 border-b pb-3 border-slate-100">
                         <i data-lucide="file-spreadsheet" class="text-blue-600 w-5 h-5"></i>
@@ -386,49 +359,29 @@
         let authUser = null;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'smpn2-kedungbanteng-app';
 
-        // Toggles Firebase Config Panel
+        // Toggles Firebase Config Panel (Sisa fungsi pendukung dibiarkan di JS agar tidak memicu error)
         function toggleFirebasePanel() {
-            const panel = document.getElementById('firebase-panel');
-            const chevron = document.getElementById('fb-chevron');
-            if (panel.classList.contains('hidden')) {
-                panel.classList.remove('hidden');
-                chevron.classList.add('rotate-180');
-            } else {
-                panel.classList.add('hidden');
-                chevron.classList.remove('rotate-180');
-            }
+            // Dibutuhkan jika dipanggil programmatically
         }
 
-        // Save Firebase Credentials securely to LocalStorage (If you want custom config override)
+        // Save Firebase Credentials securely to LocalStorage
         function saveFirebaseConfig() {
-            const rawJson = document.getElementById('firebase-json-input').value.trim();
-            if (!rawJson) {
-                showToast("Input Kosong", "Silakan tempelkan konfigurasi JSON Firebase terlebih dahulu.", "error");
-                return;
-            }
-
+            const rawJson = document.getElementById('firebase-json-input')?.value?.trim();
+            if (!rawJson) return;
             try {
                 const parsed = JSON.parse(rawJson);
-                if (!parsed.projectId || !parsed.apiKey) {
-                    showToast("Format Tidak Valid", "Objek JSON harus menyertakan minimal 'apiKey' dan 'projectId'.", "error");
-                    return;
-                }
-                
                 localStorage.setItem('reigncast_firebase_config', rawJson);
                 showToast("Tersimpan!", "Kredensial disimpan lokal. Memulai sambungan...", "success");
-                
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
+                setTimeout(() => { location.reload(); }, 1000);
             } catch (err) {
-                showToast("JSON Error", "Gagal memproses JSON. Pastikan tanda kutip dan kurung kurawal sesuai.", "error");
+                showToast("JSON Error", "Gagal memproses JSON.", "error");
             }
         }
 
-        // Remove Custom Firebase Config from LocalStorage
+        // Remove Custom Firebase Config
         function clearFirebaseConfig() {
             localStorage.removeItem('reigncast_firebase_config');
-            showToast("Kembali ke Default", "Konfigurasi kustom dihapus, menggunakan setelan bawaan SMPN 2 Kedungbanteng.", "info");
+            showToast("Kembali ke Default", "Konfigurasi kustom dihapus, menggunakan setelan bawaan.", "info");
             setTimeout(() => {
                 location.reload();
             }, 1000);
@@ -442,7 +395,6 @@
                 const savedConfig = localStorage.getItem('reigncast_firebase_config');
                 if (savedConfig) {
                     configToUse = JSON.parse(savedConfig);
-                    document.getElementById('firebase-json-input').value = savedConfig;
                 }
 
                 if (configToUse && configToUse.projectId) {
@@ -1348,7 +1300,7 @@
                             <td class="px-4 py-2 font-bold text-slate-900">${s.namaSiswa}</td>
                             <td class="px-4 py-2 text-center">
                                 <span class="px-2 py-0.5 rounded text-[10px] font-extrabold ${s.jenisKelamin === 'L' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'}">
-                                    ${s.jenisKelamin === 'L' ? 'LAKI-LAKI' : 'PEREMPUAN'}
+                                    ${s.jenisKelamin}
                                 </span>
                             </td>
                             <td class="px-4 py-2 text-slate-600 font-medium">${s.namaSekolah}</td>
@@ -1486,7 +1438,7 @@
                                 <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-12 h-12 object-contain logo-transparent" alt="Logo SMPN 2 Kedungbanteng">
                                 <div class="text-left">
                                     <h2 class="text-xs font-bold uppercase tracking-wider text-slate-800 leading-tight">DAFTAR NAMA SISWA KELAS VII ${c.letter}</h2>
-                                    <h1 class="text-sm font-black tracking-wider uppercase text-slate-900 leading-tight">SEKOLAH MENENGAH PERTAMA NEGERI 2 KEDUNGBANTENG</h1>
+                                    <h1 class="text-lg font-black tracking-wider uppercase text-slate-900 leading-tight">SEKOLAH MENENGAH PERTAMA NEGERI 2 KEDUNGBANTENG</h1>
                                     <p class="text-[9px] font-bold text-slate-600 tracking-wide uppercase">TAHUN AJARAN ${ta}</p>
                                 </div>
                             </div>
