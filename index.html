@@ -112,16 +112,16 @@
                     
                     <div id="firebase-panel" class="mt-4 pt-4 border-t border-slate-100 hidden space-y-3">
                         <p class="text-xs text-slate-500 leading-relaxed">
-                            Tempelkan (*paste*) konfigurasi JSON Firebase Anda di bawah ini agar konfigurasi tersimpan aman di browser Anda dan tidak terekspos di publik GitHub.
+                            Aplikasi telah menggunakan konfigurasi Firebase SMPN 2 Kedungbanteng bawaan Anda secara otomatis. Anda tidak perlu memasukkannya lagi secara manual di bawah ini, kecuali jika ingin mengganti database cloud.
                         </p>
                         <textarea id="firebase-json-input" rows="5" placeholder='{&#10;  "apiKey": "AIzaSy...",&#10;  "authDomain": "...",&#10;  "projectId": "..."&#10;}' class="w-full p-2.5 font-mono text-xs border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
                         
                         <div class="flex gap-2">
                             <button onclick="saveFirebaseConfig()" class="flex-1 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5">
-                                <i data-lucide="save" class="w-3.5 h-3.5"></i> Simpan & Hubungkan
+                                <i data-lucide="save" class="w-3.5 h-3.5"></i> Simpan Kustom JSON
                             </button>
                             <button onclick="clearFirebaseConfig()" class="py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold transition">
-                                Putuskan
+                                Reset Default
                             </button>
                         </div>
                     </div>
@@ -232,6 +232,12 @@
                     <button id="btn-process" class="w-full mt-4 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform active:scale-[0.98]">
                         <i data-lucide="play" class="w-4 h-4 fill-white"></i>
                         Susun & Bagi Kelas
+                    </button>
+
+                    <!-- Restore Cloud Result Button (Dynamically shown when connected) -->
+                    <button id="btn-load-cloud" onclick="loadResultFromFirestore(true)" class="w-full mt-2 py-2 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 border border-emerald-200 hidden">
+                        <i data-lucide="cloud-download" class="w-4 h-4 animate-bounce"></i>
+                        Muat Hasil Terakhir dari Cloud
                     </button>
                 </div>
 
@@ -352,6 +358,16 @@
         let viewMode = 'list'; // 'list' or 'seating'
         let classConfigurations = []; // To store customized wali kelas name, NIP and class types dynamically.
 
+        // Firebase Configuration Terintegrasi Secara Permanen (Sesuai Permintaan Anda)
+        const defaultFirebaseConfig = {
+            apiKey: "AIzaSyB5IcirgGz6O0yclUseCUO-S_QKSMUvtpc",
+            authDomain: "smpn2-kedungbanteng-app.firebaseapp.com",
+            projectId: "smpn2-kedungbanteng-app",
+            storageBucket: "smpn2-kedungbanteng-app.firebasestorage.app",
+            messagingSenderId: "524999715159",
+            appId: "1:524999715159:web:6d6398a3e294a4d080b612"
+        };
+
         let db = null;
         let isFirebaseActive = false;
         let authUser = null;
@@ -370,7 +386,7 @@
             }
         }
 
-        // Save Firebase Credentials securely to LocalStorage
+        // Save Firebase Credentials securely to LocalStorage (If you want custom config override)
         function saveFirebaseConfig() {
             const rawJson = document.getElementById('firebase-json-input').value.trim();
             if (!rawJson) {
@@ -388,7 +404,6 @@
                 localStorage.setItem('reigncast_firebase_config', rawJson);
                 showToast("Tersimpan!", "Kredensial disimpan lokal. Memulai sambungan...", "success");
                 
-                // Reload Page to re-initiate connection securely
                 setTimeout(() => {
                     location.reload();
                 }, 1000);
@@ -397,10 +412,10 @@
             }
         }
 
-        // Remove Firebase Config from LocalStorage
+        // Remove Custom Firebase Config from LocalStorage
         function clearFirebaseConfig() {
             localStorage.removeItem('reigncast_firebase_config');
-            showToast("Diputuskan", "Konfigurasi Firebase lokal berhasil dihapus.", "info");
+            showToast("Kembali ke Default", "Konfigurasi kustom dihapus, menggunakan setelan bawaan SMPN 2 Kedungbanteng.", "info");
             setTimeout(() => {
                 location.reload();
             }, 1000);
@@ -409,19 +424,12 @@
         // Inisialisasi Firebase secara dinamis dan aman
         async function initFirebase() {
             try {
-                let configToUse = null;
+                let configToUse = defaultFirebaseConfig; // Default langsung ke kredensial utama Anda
                 
-                // 1. Coba baca dari LocalStorage terlebih dahulu (Metode Pengaman Utama GitHub)
                 const savedConfig = localStorage.getItem('reigncast_firebase_config');
                 if (savedConfig) {
                     configToUse = JSON.parse(savedConfig);
                     document.getElementById('firebase-json-input').value = savedConfig;
-                    // Buka panel otomatis untuk konfirmasi
-                    document.getElementById('firebase-panel').classList.remove('hidden');
-                    document.getElementById('fb-chevron').classList.add('rotate-180');
-                } else if (typeof __firebase_config !== 'undefined') {
-                    // 2. Coba membaca data fallback dari environment global jika dijalankan di Canvas terintegrasi
-                    configToUse = JSON.parse(__firebase_config);
                 }
 
                 if (configToUse && configToUse.projectId) {
@@ -446,11 +454,17 @@
                         statusDiv.className = "flex items-center gap-1.5 text-xs bg-emerald-950/40 text-emerald-300 px-3 py-1.5 rounded-full border border-emerald-800 shadow-sm";
                         statusDiv.innerHTML = `
                             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span>Cloud Terhubung</span>
+                            <span>Cloud Terhubung (Online)</span>
                         `;
                         
+                        // Tampilkan tombol muat data cloud
+                        document.getElementById('btn-load-cloud').classList.remove('hidden');
+
                         // Load Konfigurasi Tersimpan dari Cloud
                         await loadConfigFromFirestore();
+
+                        // Jalankan pengecekan sunyi apakah ada hasil tersimpan sebelumnya di cloud
+                        await loadResultFromFirestore(false);
                     }
                 }
             } catch (err) {
@@ -718,6 +732,110 @@
                 }
             } catch (err) {
                 console.error("Gagal membaca konfigurasi cloud", err);
+            }
+        }
+
+        // CLOUD FUNCTIONS: Simpan & Muat Hasil Pembagian Kelas (Data Hasil Generasi)
+        async function saveResultToFirestore() {
+            if (!isFirebaseActive || !authUser || distributedClasses.length === 0) return;
+
+            const indicator = document.getElementById('autosave-indicator');
+            indicator.classList.remove('hidden');
+            indicator.innerHTML = `<i data-lucide="refresh-cw" class="w-3 h-3 text-blue-500 animate-spin"></i> Menyimpan hasil...`;
+            lucide.createIcons();
+
+            try {
+                const dataToSave = {
+                    distributedClasses: distributedClasses.map(c => ({
+                        id: c.id,
+                        letter: c.letter,
+                        name: c.name,
+                        type: c.type,
+                        waliKelas: c.waliKelas,
+                        nip: c.nip,
+                        capacity: c.capacity,
+                        targetBoys: c.targetBoys,
+                        targetGirls: c.targetGirls,
+                        students: c.students // Data daftar siswa di dalam kelas
+                    })),
+                    rawStudents: rawStudents,
+                    savedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                // Menyimpan hasil di jalur: /artifacts/{appId}/public/data/results/latest_distribution
+                await db.collection('artifacts')
+                    .doc(appId)
+                    .collection('public')
+                    .doc('data')
+                    .collection('results')
+                    .doc('latest_distribution')
+                    .set(dataToSave);
+
+                indicator.innerHTML = `<i data-lucide="cloud-lightning" class="w-3 h-3 text-emerald-500"></i> Hasil Tersimpan di Cloud`;
+                lucide.createIcons();
+                showToast("Hasil Tersimpan", "Seluruh hasil pembagian kelas baru berhasil diunggah dan disimpan ke database cloud.", "success");
+            } catch (err) {
+                console.error("Gagal mengunggah hasil pembagian ke cloud:", err);
+                showToast("Gagal Menyimpan Hasil", "Sistem lokal berhasil, namun gagal melakukan sinkronisasi hasil ke database cloud.", "error");
+            }
+        }
+
+        async function loadResultFromFirestore(explicit = false) {
+            if (!isFirebaseActive || !authUser) {
+                if (explicit) showToast("Database Offline", "Firebase belum aktif atau belum dikonfigurasi.", "error");
+                return;
+            }
+
+            try {
+                const docRef = db.collection('artifacts')
+                    .doc(appId)
+                    .collection('public')
+                    .doc('data')
+                    .collection('results')
+                    .doc('latest_distribution');
+                
+                const doc = await docRef.get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    
+                    // Pulihkan data siswa mentah
+                    if (data.rawStudents && data.rawStudents.length > 0) {
+                        rawStudents = data.rawStudents;
+                    }
+
+                    // Pulihkan struktur kelas & susun kembali denah tempat duduk secara otomatis
+                    if (data.distributedClasses && data.distributedClasses.length > 0) {
+                        distributedClasses = data.distributedClasses.map(c => {
+                            return {
+                                ...c,
+                                seating: arrangeSeating(c.students)
+                            };
+                        });
+
+                        activeClassIndex = 0;
+                        
+                        // Perbarui UI
+                        renderStatsPanel();
+                        renderClassTabs();
+                        renderClassContent();
+
+                        // Tampilkan Kartu Hasil
+                        mainStateCard.classList.add('hidden');
+                        resultCard.classList.remove('hidden');
+                        quickStats.classList.remove('hidden');
+
+                        if (explicit) {
+                            showToast("Hasil Cloud Dimuat", `Berhasil memulihkan struktur ${distributedClasses.length} kelas beserta data siswanya secara realtime.`, "success");
+                        } else {
+                            showToast("Sesi Dipulihkan", "Sistem memulihkan hasil pembagian kelas terakhir secara otomatis dari Cloud.", "info");
+                        }
+                    }
+                } else {
+                    if (explicit) showToast("Cloud Kosong", "Belum ada riwayat hasil pembagian kelas tersimpan di database Cloud.", "info");
+                }
+            } catch (err) {
+                console.error("Gagal memuat riwayat pembagian dari cloud:", err);
+                if (explicit) showToast("Error Gagal Memuat", "Terjadi galat perizinan atau sambungan saat memuat data cloud.", "error");
             }
         }
 
@@ -1044,6 +1162,9 @@
             quickStats.classList.remove('hidden');
 
             showToast("Pembagian Selesai", "Siswa berhasil didistribusikan secara proporsional dan genap berpasangan.", "success");
+
+            // Otomatis mengunggah dan mengamankan data hasil pembagian di cloud Firebase
+            saveResultToFirestore();
         }
 
         // Seating Arrangement Generator (Pairing L-L, P-P)
