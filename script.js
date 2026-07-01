@@ -1,10 +1,12 @@
- // Global State (DIPOSISIKAN DI ATAS UNTUK KEAMANAN INSTANSIASI)
+// Global State (DIPOSISIKAN DI ATAS UNTUK KEAMANAN INSTANSIASI)
         let rawStudents = [];
         let distributedClasses = [];
         let activeClassIndex = 0;
         let viewMode = 'list'; // 'list' or 'seating'
         let classConfigurations = []; // To store customized wali kelas name, NIP and class types dynamically.
         let manualStudentCount = 0;
+        let lastDeletedStudent = null;
+        let lastDeletedClassIndex = -1;
 
         // Dark Mode
         let isDarkMode = localStorage.getItem('darkMode') === 'true';
@@ -45,6 +47,7 @@
         const toggleComparisonView = document.getElementById('toggle-comparison-view');
         const toggleSeatingView = document.getElementById('toggle-seating-view');
         const btnExportExcel = document.getElementById('btn-export-excel');
+        const btnQuickRedistribute = document.getElementById('btn-quick-redistribute');
         const btnPrintAll = document.getElementById('btn-print-all');
         const printArea = document.getElementById('print-area');
         const classSettingsList = document.getElementById('class-settings-list');
@@ -568,22 +571,35 @@
                         return;
                     }
 
+                    // Ambil header kolom pertama (NISN) dan kolom terakhir (Prestasi) secara dinamis
+                    const colKeys = Object.keys(jsonData[0]);
+                    const firstColKey = colKeys[0];
+                    const lastColKey = colKeys[colKeys.length - 1];
+
                     rawStudents = jsonData.map((row, idx) => {
-                        const nisn = String(row['NISN'] || row['nisn'] || row['Nisn'] || `0000${idx + 1}`).trim();
+                        // NISN selalu diambil dari kolom pertama file Excel
+                        const nisn = String(row[firstColKey] || `0000${idx + 1}`).trim();
                         const namaSiswa = toProperCase(String(row['Nama Siswa'] || row['nama siswa'] || row['NAMA'] || row['Nama'] || ''));
                         const jkRaw = String(row['Jenis Kelamin (P/L)'] || row['Jenis Kelamin'] || row['JK'] || row['jk'] || row['L/P'] || '').trim().toUpperCase();
                         const jenisKelamin = jkRaw.includes('L') && !jkRaw.includes('P') ? 'L' : jkRaw.includes('P') ? 'P' : (Math.random() > 0.5 ? 'L' : 'P');
                         const skorNilai = parseFloat(row['Skor Nilai'] || row['Nilai'] || row['skor'] || row['Score'] || 0) || 0;
                         const namaSekolah = toProperCase(String(row['Nama Sekolah'] || row['nama sekolah'] || row['Asal Sekolah'] || row['Sekolah'] || ''));
-                        const prestasi = String(row['Prestasi Sertifikat'] || row['Prestasi'] || row['prestasi'] || 'Kosong').trim();
+
+                        // Prestasi: coba dari kolom bernama prestasi, JIKA TIDAK KETEMU ambil dari kolom TERAKHIR Excel
+                        // Sel kosong = Kosong, isi apapun (SERTIFIKAT/Sertifikat/dll) = Sertifikat
+                        let prestasiRaw = String(row['Prestasi Sertifikat'] || row['Prestasi'] || row['prestasi'] || '').trim();
+                        if (prestasiRaw === '' && lastColKey !== firstColKey) {
+                            prestasiRaw = String(row[lastColKey] || '').trim();
+                        }
+                        const prestasi = prestasiRaw !== '' ? 'Sertifikat' : 'Kosong';
 
                         return {
                             nisn,
                             namaSiswa: namaSiswa || `Siswa ${idx + 1}`,
                             jenisKelamin,
-                            skorNilai: Math.max(0, skorNilai),
+                            skorNilai,
                             namaSekolah: namaSekolah || 'SD SEBELUMNYA',
-                            prestasi: (prestasi.toLowerCase() === 'sertifikat' || prestasi.toLowerCase() === 'ada' || prestasi.toLowerCase() === 'ya') ? 'Sertifikat' : 'Kosong'
+                            prestasi
                         };
                     });
 
@@ -633,17 +649,17 @@
                         showToast("Jenis Kelamin Diperbaiki", `${genderFixedCount} data jenis kelamin tidak valid telah diperbaiki secara otomatis.`, "error");
                     }
 
-                    // 3. Score Validation
+                    // 3. Score Validation — hanya perbaiki NaN/negatif, JANGAN batasi nilai > 100 (skor asli bisa > 100)
                     let scoreFixedCount = 0;
                     rawStudents.forEach(s => {
-                        if (isNaN(s.skorNilai) || s.skorNilai < 0 || s.skorNilai > 100) {
-                            s.skorNilai = Math.min(100, Math.max(0, isNaN(s.skorNilai) ? 0 : s.skorNilai));
+                        if (isNaN(s.skorNilai) || s.skorNilai < 0) {
+                            s.skorNilai = Math.max(0, isNaN(s.skorNilai) ? 0 : s.skorNilai);
                             scoreFixedCount++;
                         }
                     });
                     if (scoreFixedCount > 0) {
                         hasWarnings = true;
-                        showToast("Skor Nilai Diperbaiki", `${scoreFixedCount} skor nilai tidak valid telah dikoreksi ke rentang 0-100.`, "error");
+                        showToast("Skor Nilai Diperbaiki", `${scoreFixedCount} skor nilai tidak valid (NaN/negatif) telah dikoreksi.`, "error");
                     }
 
                     // 4. Empty Name Check
@@ -905,6 +921,9 @@
 
             showToast("Pembagian Selesai", "Siswa berhasil didistribusikan secara proporsional dan genap berpasangan.", "success");
 
+            // Launch confetti celebration
+            launchConfetti();
+
             // Otomatis mengunggah dan mengamankan data hasil pembagian di cloud Firebase
             saveResultToFirestore();
         }
@@ -932,6 +951,64 @@
             }
 
             return pairs;
+        }
+
+        // Confetti Animation on Distribution Complete
+        function launchConfetti() {
+            const colors = ['#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+            const container = document.createElement('div');
+            container.id = 'confetti-container';
+            container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999999;overflow:hidden;';
+            document.body.appendChild(container);
+
+            const particles = [];
+            const particleCount = 90;
+
+            for (let i = 0; i < particleCount; i++) {
+                const p = document.createElement('div');
+                const size = 6 + Math.random() * 4;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const opacity = 0.5 + Math.random() * 0.5;
+                const x = window.innerWidth / 2 + (Math.random() - 0.5) * 200;
+                const vx = (Math.random() - 0.5) * 12;
+                const vy = 2 + Math.random() * 6;
+                const rotation = Math.random() * 360;
+                const rotSpeed = (Math.random() - 0.5) * 15;
+
+                p.style.cssText = `position:absolute;left:${x}px;top:-10px;width:${size}px;height:${size}px;background:${color};border-radius:50%;opacity:${opacity};`;
+                container.appendChild(p);
+
+                particles.push({ el: p, x: x, y: -10, vx: vx, vy: vy, rotation: rotation, rotSpeed: rotSpeed });
+            }
+
+            const startTime = performance.now();
+            const duration = 3000;
+
+            function animate(now) {
+                const elapsed = now - startTime;
+                if (elapsed > duration) {
+                    container.remove();
+                    return;
+                }
+
+                const progress = elapsed / duration;
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.vy += 0.15;
+                    p.y += p.vy;
+                    p.rotation += p.rotSpeed;
+                    p.vx *= 0.99;
+
+                    const fadeOut = progress > 0.7 ? 1 - ((progress - 0.7) / 0.3) : 1;
+                    p.el.style.transform = `translate(${p.x}px, ${p.y}px) rotate(${p.rotation}deg)`;
+                    p.el.style.opacity = fadeOut;
+                    p.el.style.left = '0px';
+                    p.el.style.top = '0px';
+                });
+
+                requestAnimationFrame(animate);
+            }
+            requestAnimationFrame(animate);
         }
 
         // Render Stats Panel
@@ -970,7 +1047,7 @@
             classTabs.innerHTML = '';
             distributedClasses.forEach((c, idx) => {
                 const btn = document.createElement('button');
-                btn.className = `class-tab-btn px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-150 flex items-center gap-1.5 border ${
+                btn.className = `class-tab-btn relative px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-150 flex items-center gap-1.5 border ${
                     idx === activeClassIndex 
                     ? 'bg-blue-900 text-white border-blue-900 shadow-sm tab-active' 
                     : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
@@ -986,10 +1063,20 @@
                     badgeLabel = "PRES";
                 }
 
+                const tabCapacity = c.capacity || 32;
+                const tabFillCount = c.students ? c.students.length : 0;
+                const tabFillPct = Math.min(100, (tabFillCount / tabCapacity) * 100);
+
                 btn.innerHTML = `
-                    <span>Kelas VII ${c.letter}</span>
+                    <div class="flex flex-col items-center leading-tight">
+                        <span>Kelas VII ${c.letter}</span>
+                        <span class="text-[8px] text-slate-400 font-semibold">${tabFillCount}/${tabCapacity}</span>
+                    </div>
                     <span class="text-[9px] px-1 py-0.5 rounded font-extrabold border ${badgeColor}">${badgeLabel}</span>
-                    <span class="text-[10px] opacity-70">(${c.students ? c.students.length : 0})</span>
+                    <span class="text-[10px] opacity-70">(${tabFillCount})</span>
+                    <div style="position:absolute;bottom:0;left:0;right:0;height:2px;border-radius:0 0 12px 12px;overflow:hidden;background:rgba(0,0,0,0.05);">
+                        <div style="width:${tabFillPct}%;height:100%;background:${tabFillPct >= 90 ? '#22c55e' : tabFillPct >= 60 ? '#f59e0b' : '#ef4444'};border-radius:0 0 12px 12px;transition:width 0.3s;"></div>
+                    </div>
                 `;
 
                 btn.addEventListener('click', () => {
@@ -1040,8 +1127,16 @@
 
             let html = '';
 
+            // Capacity calculation
+            const capacity = activeClass.capacity || 32;
+            const fillCount = currentStudents.length;
+            const fillPct = Math.min(100, (fillCount / capacity) * 100);
+            let capacityColor = 'bg-emerald-500';
+            if (fillPct < 60) capacityColor = 'bg-red-500';
+            else if (fillPct < 90) capacityColor = 'bg-amber-500';
+
             html += `
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm">
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm">
                     <div>
                         <span class="text-xs text-slate-500 block">Total Siswa</span>
                         <span class="font-extrabold text-slate-800 text-base">${currentStudents.length} Siswa</span>
@@ -1060,26 +1155,37 @@
                         <span class="text-xs text-slate-500 block">Wali Kelas</span>
                         <span class="font-bold text-blue-800 text-sm truncate block" title="${activeClass.waliKelas || ''}">${activeClass.waliKelas || '-'}</span>
                     </div>
+                    <div>
+                        <span class="text-xs text-slate-500 block">Kapasitas</span>
+                        <span class="font-extrabold text-slate-800 text-sm">${fillCount} / ${capacity} Siswa</span>
+                        <div class="w-full bg-slate-200 rounded-full h-2 mt-1">
+                            <div class="${capacityColor} h-2 rounded-full transition-all duration-500" style="width:${fillPct}%"></div>
+                        </div>
+                    </div>
                 </div>
             `;
 
             if (viewMode === 'list') {
                 html += `
-                    <div class="relative">
-                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-                        <input type="text" id="student-search-input" placeholder="Cari nama siswa atau sekolah..." class="w-full mb-4 px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm pl-10">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="relative flex-1">
+                            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                            <input type="text" id="student-search-input" placeholder="Cari nama siswa atau sekolah..." class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm pl-10">
+                        </div>
+                        <span id="selected-count" class="hidden text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full whitespace-nowrap"></span>
                     </div>
                     <div id="student-table-container" class="overflow-x-auto rounded-xl border border-slate-100">
                         <!-- Kolom disesuaikan lebar persentasenya sesuai request di web view agar seragam -->
                         <table class="w-full text-xs text-left table-fixed">
                             <thead class="bg-slate-100 text-slate-700 text-[10px] uppercase font-extrabold">
                                 <tr>
-                                    <th class="px-4 py-3 text-center w-[5%]">NO</th>
-                                    <th class="px-4 py-3 w-[10%]">NISN</th>
-                                    <th class="px-4 py-3 w-[38%]">NAMA SISWA</th>
-                                    <th class="px-4 py-3 text-center w-[5%]">JK</th>
-                                    <th class="px-4 py-3 w-[34%]">ASAL SEKOLAH</th>
-                                    <th class="px-2 py-3 text-center w-[8%]">AKSI</th>
+                                    <th class="px-2 py-3 text-center w-[4%]"><input type="checkbox" onchange="toggleSelectAll(this.checked)" class="rounded" title="Pilih Semua"></th>
+                                    <th class="px-3 py-3 text-center w-[4%]">NO</th>
+                                    <th class="px-3 py-3 w-[9%]">NISN</th>
+                                    <th class="px-3 py-3 w-[32%]">NAMA SISWA</th>
+                                    <th class="px-3 py-3 text-center w-[4%]">JK</th>
+                                    <th class="px-3 py-3 w-[29%]">ASAL SEKOLAH</th>
+                                    <th class="px-1 py-3 text-center w-[8%]">AKSI</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 text-slate-700" id="student-tbody">
@@ -1089,10 +1195,11 @@
                     const bgRow = idx % 2 === 0 ? "bg-white" : "bg-slate-50/50";
 
                     html += `
-                        <tr class="${bgRow} hover:bg-slate-50 transition-colors" data-searchable>
-                            <td class="px-4 py-2 font-bold text-slate-400 text-center student-no">${idx + 1}</td>
-                            <td class="px-4 py-2 font-mono font-semibold text-slate-600">${s.nisn}</td>
-                            <td class="px-4 py-2 font-bold text-slate-900 truncate" title="${s.namaSiswa}">${s.namaSiswa}</td>
+                        <tr class="${bgRow} hover:bg-slate-50 transition-colors" data-searchable onmouseenter="showStudentTooltip(${idx}, event)" onmouseleave="hideStudentTooltip()">
+                            <td class="px-2 py-2 text-center"><input type="checkbox" class="student-checkbox rounded" data-idx="${idx}"></td>
+                            <td class="px-3 py-2 font-bold text-slate-400 text-center student-no">${idx + 1}</td>
+                            <td class="px-3 py-2 font-mono font-semibold text-slate-600">${s.nisn}</td>
+                            <td class="px-3 py-2 font-bold text-slate-900 truncate cursor-help" title="${s.namaSiswa}">${s.namaSiswa}</td>
                             <td class="px-4 py-2 text-center">
                                 <span class="px-2 py-0.5 rounded text-[10px] font-extrabold ${s.jenisKelamin === 'L' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'}">
                                     ${s.jenisKelamin}
@@ -1103,6 +1210,9 @@
                                 <div class="flex items-center justify-center gap-1">
                                     <button onclick="editStudent(${idx})" class="student-action-btn p-1.5 rounded-lg hover:bg-blue-100 text-slate-400 hover:text-blue-600 transition" title="Edit Siswa">
                                         <i data-lucide="pencil" class="w-3 h-3"></i>
+                                    </button>
+                                    <button onclick="moveStudent(${idx})" class="student-action-btn p-1.5 rounded-lg hover:bg-amber-100 text-slate-400 hover:text-amber-600 transition" title="Pindahkan Kelas">
+                                        <i data-lucide="arrow-right-left" class="w-3 h-3"></i>
                                     </button>
                                     <button onclick="deleteStudent(${idx})" class="student-action-btn p-1.5 rounded-lg hover:bg-rose-100 text-slate-400 hover:text-rose-600 transition" title="Hapus Siswa">
                                         <i data-lucide="trash-2" class="w-3 h-3"></i>
@@ -1193,8 +1303,8 @@
                         const noResults = document.getElementById('no-results-message');
                         let visibleCount = 0;
                         rows.forEach(row => {
-                            const nameCell = row.querySelector('td:nth-child(3)');
-                            const schoolCell = row.querySelector('td:nth-child(5)');
+                            const nameCell = row.querySelector('td:nth-child(4)');
+                            const schoolCell = row.querySelector('td:nth-child(6)');
                             const name = nameCell ? nameCell.textContent.toLowerCase() : '';
                             const school = schoolCell ? schoolCell.textContent.toLowerCase() : '';
                             const match = !query || name.includes(query) || school.includes(query);
@@ -1209,6 +1319,10 @@
                         }
                     });
                 }
+                // Attach individual checkbox change listeners
+                dynamicContentArea.querySelectorAll('.student-checkbox').forEach(cb => {
+                    cb.addEventListener('change', updateSelectionUI);
+                });
             }
         }
 
@@ -1350,6 +1464,69 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="mt-6 bg-white rounded-xl border border-slate-100 p-5">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i data-lucide="histogram" class="w-5 h-5 text-violet-600"></i>
+                        <h3 class="font-extrabold text-lg text-slate-900">Distribusi Nilai per Kelas</h3>
+                    </div>
+
+                    <div class="space-y-3">
+            `;
+
+            // Score ranges configuration
+            const scoreRanges = [
+                { label: '0-40', color: '#ef4444', colorName: 'Merah', min: 0, max: 40 },
+                { label: '41-60', color: '#f59e0b', colorName: 'Amber', min: 41, max: 60 },
+                { label: '61-70', color: '#eab308', colorName: 'Kuning', min: 61, max: 70 },
+                { label: '71-80', color: '#22c55e', colorName: 'Hijau', min: 71, max: 80 },
+                { label: '81-90', color: '#3b82f6', colorName: 'Biru', min: 81, max: 90 },
+                { label: '91-100', color: '#8b5cf6', colorName: 'Ungu', min: 91, max: 100 }
+            ];
+
+            distributedClasses.forEach((c) => {
+                const students = c.students || [];
+                const rangeCounts = scoreRanges.map(r => students.filter(s => s.skorNilai >= r.min && s.skorNilai <= r.max).length);
+                const totalInRanges = rangeCounts.reduce((a, b) => a + b, 0);
+                const maxCount = Math.max(...rangeCounts, 1);
+
+                html += `
+                    <div class="flex items-center gap-3">
+                        <div class="w-20 flex-shrink-0 text-xs font-extrabold text-slate-700 text-right">VII ${c.letter}</div>
+                        <div class="flex-1 flex h-5 rounded-md overflow-hidden bg-slate-100">
+                `;
+
+                rangeCounts.forEach((count, ri) => {
+                    const pct = totalInRanges > 0 ? (count / totalInRanges) * 100 : 0;
+                    if (pct > 0) {
+                        html += `<div style="width:${pct}%; background-color:${scoreRanges[ri].color};" title="${scoreRanges[ri].label}: ${count} siswa (${pct.toFixed(1)}%)"></div>`;
+                    }
+                });
+
+                html += `
+                        </div>
+                        <div class="w-10 flex-shrink-0 text-[10px] text-slate-500 font-bold text-right">${students.length}</div>
+                    </div>
+                `;
+            });
+
+            // Legend
+            html += `
+                    </div>
+
+                    <div class="flex flex-wrap gap-x-4 gap-y-1.5 mt-4 pt-3 border-t border-slate-100">
+            `;
+            scoreRanges.forEach(r => {
+                html += `
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-sm inline-block" style="background-color:${r.color};"></span>
+                        <span class="text-[10px] text-slate-600 font-semibold">${r.label} (${r.colorName})</span>
+                    </div>
+                `;
+            });
+            html += `
+                    </div>
+                </div>
             `;
 
             dynamicContentArea.innerHTML = html;
@@ -1361,6 +1538,10 @@
             const activeClass = distributedClasses[activeClassIndex];
             const student = activeClass.students[studentIdx];
             if (!student) return;
+
+            // Save for undo before deleting
+            lastDeletedStudent = { ...student };
+            lastDeletedClassIndex = activeClassIndex;
 
             activeClass.students.splice(studentIdx, 1);
 
@@ -1378,6 +1559,33 @@
             renderClassContent();
 
             showToast("Siswa Dihapus", `${student.namaSiswa} telah dihapus dari Kelas VII ${activeClass.letter}.`, 'error');
+
+            // Undo toast
+            const toastContainer = document.getElementById('toast-container');
+            if (toastContainer) {
+                const undoToast = document.createElement('div');
+                undoToast.className = 'flex items-center gap-3 p-4 rounded-xl shadow-lg border text-sm max-w-sm transition-all duration-300 transform translate-y-2 opacity-0 bg-amber-50 border-amber-200 text-amber-900';
+                undoToast.innerHTML = `
+                    <i data-lucide="undo-2" class="text-amber-500 w-5 h-5 flex-shrink-0"></i>
+                    <div class="flex-1">
+                        <h4 class="font-bold">Undo Hapus</h4>
+                        <p class="text-xs opacity-90 mt-0.5">Klik tombol untuk membatalkan penghapusan.</p>
+                    </div>
+                    <button onclick="undoLastDelete()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition flex-shrink-0">Undo</button>
+                `;
+                toastContainer.appendChild(undoToast);
+                undoToast.classList.add('toast-enter');
+                lucide.createIcons({ attrs: { class: 'w-5 h-5' } });
+                setTimeout(() => {
+                    undoToast.classList.remove('translate-y-2', 'opacity-0');
+                }, 50);
+                setTimeout(() => {
+                    undoToast.classList.add('translate-y-2', 'opacity-0');
+                    setTimeout(() => {
+                        undoToast.remove();
+                    }, 300);
+                }, 8000);
+            }
 
             triggerAutosave();
         }
@@ -1772,6 +1980,74 @@
             }
         }
 
+        // Print Preview Modal
+        function showPrintPreview() {
+            if (distributedClasses.length === 0) {
+                showToast("Tidak Ada Data", "Silakan susun pembagian kelas terlebih dahulu.", "error");
+                return;
+            }
+
+            preparePrintArea();
+
+            const modal = document.createElement('div');
+            modal.id = 'print-preview-modal';
+            modal.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-[999998] backdrop-blur-sm';
+            modal.style.animation = 'modalFadeIn 0.2s ease';
+
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 flex flex-col" style="max-height:90vh;">
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                        <h3 class="font-extrabold text-lg text-slate-900 flex items-center gap-2">
+                            <i data-lucide="printer" class="w-5 h-5 text-blue-600"></i>
+                            Pratinjau Cetak
+                        </h3>
+                        <button id="print-preview-close" class="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-6 bg-slate-100" id="print-preview-content" style="min-height:400px;">
+                        <div class="bg-white rounded-xl shadow-sm p-4 overflow-auto" style="transform:scale(0.75);transform-origin:top center;">
+                            <div id="print-preview-inner"></div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100">
+                        <button id="print-preview-cancel" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-sm font-bold transition">
+                            Tutup
+                        </button>
+                        <button id="print-preview-print" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition flex items-center gap-2 shadow-sm">
+                            <i data-lucide="printer" class="w-4 h-4"></i>
+                            Cetak Sekarang
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            lucide.createIcons();
+
+            // Populate preview with print area content
+            const previewInner = document.getElementById('print-preview-inner');
+            if (previewInner && printArea) {
+                previewInner.innerHTML = printArea.innerHTML;
+            }
+
+            // Print button
+            document.getElementById('print-preview-print').addEventListener('click', function() {
+                modal.remove();
+                setTimeout(() => window.print(), 200);
+            });
+
+            // Close handlers
+            document.getElementById('print-preview-close').addEventListener('click', function() {
+                modal.remove();
+            });
+            document.getElementById('print-preview-cancel').addEventListener('click', function() {
+                modal.remove();
+            });
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) modal.remove();
+            });
+        }
+
         // EXPORT TO EXCEL DENGAN METODE BLOB DAN PEMBAGIAN SHEET YANG AMAN (Siswa = Sheet 1, Denah = Sheet 2)
         function exportToExcel() {
             try {
@@ -1904,6 +2180,54 @@
             }
         }
 
+        // Export all class data to a single CSV file
+        function exportToCSV() {
+            try {
+                if (distributedClasses.length === 0) {
+                    showToast("Tidak Ada Data", "Silakan susun pembagian kelas terlebih dahulu.", "error");
+                    return;
+                }
+
+                const headers = ["NO", "NISN", "NAMA", "JK", "SKOR NILAI", "ASAL SEKOLAH", "PRESTASI", "KELAS", "WALI KELAS"];
+                const rows = [headers.join(",")];
+
+                let no = 1;
+                distributedClasses.forEach((c) => {
+                    const conf = classConfigurations.find(cfg => cfg.letter === c.letter) || {};
+                    const waliNama = conf.waliKelas || '';
+                    (c.students || []).forEach((s) => {
+                        const nama = '"' + (s.namaSiswa || '').replace(/"/g, '""') + '"';
+                        const sekolah = '"' + (s.namaSekolah || '').replace(/"/g, '""') + '"';
+                        const wali = '"' + waliNama.replace(/"/g, '""') + '"';
+                        rows.push([no, s.nisn, nama, s.jenisKelamin, s.skorNilai, sekolah, s.prestasi, 'VII ' + c.letter, wali].join(","));
+                        no++;
+                    });
+                });
+
+                const csvContent = rows.join("\n");
+                const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const blobUrl = URL.createObjectURL(blob);
+                const ta = document.getElementById('config-ta').value;
+                const filename = 'Pembagian_Kelas_VII_SMPN2_Kedungbanteng_' + String(ta || '').replace('/', '-') + '.csv';
+
+                const link = document.createElement("a");
+                link.href = blobUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(blobUrl);
+                }, 200);
+
+                showToast("Ekspor CSV", "File CSV berhasil diunduh.", "success");
+            } catch (err) {
+                console.error("Gagal mengekspor data ke CSV:", err);
+                showToast("Gagal Ekspor CSV", "Terjadi kesalahan saat menyusun file CSV: " + err.message, "error");
+            }
+        }
+
         // Generate Sample Template download
         function downloadExcelTemplate() {
             try {
@@ -2014,13 +2338,383 @@
                 localStorage.setItem('darkMode', isDarkMode);
             }
 
+        // ========== NEW FEATURES: Phase 5 ==========
+
+        // 1. Batch Move Multiple Students
+        function batchMoveSelectedStudents() {
+            const checkboxes = document.querySelectorAll('.student-checkbox:checked');
+            if (checkboxes.length === 0) {
+                showToast("Tidak Ada Pilihan", "Tidak ada siswa dipilih", "error");
+                return;
+            }
+
+            if (distributedClasses.length < 2) {
+                showToast("Tidak Bisa", "Minimal 2 kelas tersedia untuk memindahkan siswa.", "error");
+                return;
+            }
+
+            const count = checkboxes.length;
+            const sourceClass = distributedClasses[activeClassIndex];
+
+            let optionsHtml = '';
+            distributedClasses.forEach((c, idx) => {
+                if (idx === activeClassIndex) return;
+                const cCount = c.students ? c.students.length : 0;
+                optionsHtml += `<option value="${idx}">Kelas VII ${c.letter} (${cCount} siswa)</option>`;
+            });
+
+            const modal = document.createElement('div');
+            modal.id = 'batch-move-modal';
+            modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[999998] backdrop-blur-sm';
+            modal.style.animation = 'modalFadeIn 0.2s ease';
+
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl p-6 shadow-2xl w-full max-w-md mx-4">
+                    <h3 class="font-bold text-lg text-slate-900 mb-2 flex items-center gap-2">
+                        <i data-lucide="users" class="w-5 h-5 text-blue-600"></i>
+                        Pindahkan Siswa Terpilih
+                    </h3>
+                    <p class="text-sm text-slate-600 mb-4">
+                        Pindahkan <span class="font-bold text-slate-900">${count} siswa terpilih</span> dari <span class="font-bold text-blue-700">Kelas VII ${sourceClass.letter}</span> ke:
+                    </p>
+                    <select id="batch-move-target-class" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        ${optionsHtml}
+                    </select>
+                    <div class="flex gap-2">
+                        <button id="batch-move-confirm-btn" class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition flex items-center justify-center gap-1.5">
+                            <i data-lucide="check" class="w-4 h-4"></i> Pindahkan
+                        </button>
+                        <button id="batch-move-cancel-btn" class="flex-1 py-2.5 px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-sm font-bold transition">Batal</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            lucide.createIcons();
+
+            document.getElementById('batch-move-confirm-btn').addEventListener('click', function() {
+                const targetIdx = parseInt(document.getElementById('batch-move-target-class').value);
+                const targetClass = distributedClasses[targetIdx];
+                if (!targetClass) return;
+
+                // Collect students to move (by index in active class)
+                const indicesToMove = [];
+                checkboxes.forEach(cb => {
+                    const idx = parseInt(cb.getAttribute('data-student-index'));
+                    if (!isNaN(idx)) indicesToMove.push(idx);
+                });
+
+                // Sort descending so splicing doesn't shift earlier indices
+                indicesToMove.sort((a, b) => b - a);
+
+                const movedStudents = [];
+                indicesToMove.forEach(idx => {
+                    if (sourceClass.students[idx]) {
+                        movedStudents.push(sourceClass.students[idx]);
+                        sourceClass.students.splice(idx, 1);
+                    }
+                });
+
+                // Add to target and re-sort
+                movedStudents.forEach(s => targetClass.students.push(s));
+                targetClass.students.sort((a, b) => a.namaSiswa.localeCompare(b.namaSiswa));
+
+                // Update seating
+                sourceClass.seating = arrangeSeating(sourceClass.students);
+                targetClass.seating = arrangeSeating(targetClass.students);
+
+                modal.remove();
+                renderClassTabs();
+                renderStatsPanel();
+                renderClassContent();
+                showToast("Siswa Dipindahkan", `${movedStudents.length} siswa dipindahkan ke Kelas VII ${targetClass.letter}.`, 'success');
+                saveResultToFirestore();
+            });
+
+            document.getElementById('batch-move-cancel-btn').addEventListener('click', function() {
+                modal.remove();
+            });
+
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) modal.remove();
+            });
+        }
+
+        // 2. Select All / Deselect All Checkbox
+        function toggleSelectAll(checked) {
+            const checkboxes = document.querySelectorAll('.student-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = checked;
+            });
+            updateSelectionUI();
+        }
+
+        function updateSelectionUI() {
+            const checked = document.querySelectorAll('.student-checkbox:checked');
+            const countEl = document.getElementById('selected-count');
+            const batchBtn = document.getElementById('btn-batch-move');
+            if (checked.length > 0) {
+                if (countEl) {
+                    countEl.textContent = `${checked.length} siswa dipilih`;
+                    countEl.classList.remove('hidden');
+                }
+                if (batchBtn) batchBtn.classList.remove('hidden');
+            } else {
+                if (countEl) countEl.classList.add('hidden');
+                if (batchBtn) batchBtn.classList.add('hidden');
+            }
+        }
+
+        // 3. Undo Last Delete
+        function undoLastDelete() {
+            if (!lastDeletedStudent || lastDeletedClassIndex < 0) {
+                showToast("Tidak Bisa Undo", "Tidak ada data penghapusan terakhir untuk dibatalkan.", "error");
+                return;
+            }
+
+            const targetClass = distributedClasses[lastDeletedClassIndex];
+            if (!targetClass) {
+                showToast("Gagal Undo", "Kelas asal tidak ditemukan.", "error");
+                return;
+            }
+
+            // Restore student to original class
+            targetClass.students.push(lastDeletedStudent);
+            targetClass.students.sort((a, b) => a.namaSiswa.localeCompare(b.namaSiswa));
+            targetClass.seating = arrangeSeating(targetClass.students);
+
+            // Also restore to rawStudents
+            const exists = rawStudents.find(rs => rs.nisn === lastDeletedStudent.nisn);
+            if (!exists) {
+                rawStudents.push(lastDeletedStudent);
+            }
+
+            // Switch to the restored class and re-render
+            activeClassIndex = lastDeletedClassIndex;
+
+            // Clear undo state
+            lastDeletedStudent = null;
+            lastDeletedClassIndex = -1;
+
+            renderClassTabs();
+            renderClassContent();
+            showToast("Berhasil Undo", `Siswa telah dikembalikan ke Kelas VII ${targetClass.letter}.`, 'success');
+            triggerAutosave();
+        }
+
+        // ========== NEW FEATURES: Phase 4 ==========
+
+        // 1. Move Student to Another Class
+        function moveStudent(studentIdx) {
+            const sourceClass = distributedClasses[activeClassIndex];
+            const student = sourceClass.students[studentIdx];
+            if (!student || distributedClasses.length < 2) return;
+
+            const modal = document.createElement('div');
+            modal.id = 'move-student-modal';
+            modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[999998] backdrop-blur-sm';
+            modal.style.animation = 'modalFadeIn 0.2s ease';
+
+            let optionsHtml = '';
+            distributedClasses.forEach((c, idx) => {
+                if (idx === activeClassIndex) return;
+                const count = c.students ? c.students.length : 0;
+                optionsHtml += `<option value="${idx}">Kelas VII ${c.letter} (${count} siswa)</option>`;
+            });
+
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl p-6 shadow-2xl w-full max-w-md mx-4">
+                    <h3 class="font-bold text-lg text-slate-900 mb-2 flex items-center gap-2">
+                        <i data-lucide="arrow-right-left" class="w-5 h-5 text-blue-600"></i>
+                        Pindahkan Siswa
+                    </h3>
+                    <p class="text-sm text-slate-600 mb-4">
+                        Pindahkan <span class="font-bold text-slate-900">${student.namaSiswa}</span> dari <span class="font-bold text-blue-700">Kelas VII ${sourceClass.letter}</span> ke:
+                    </p>
+                    <select id="move-target-class" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        ${optionsHtml}
+                    </select>
+                    <div class="flex gap-2">
+                        <button id="move-confirm-btn" class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition flex items-center justify-center gap-1.5">
+                            <i data-lucide="check" class="w-4 h-4"></i> Pindahkan
+                        </button>
+                        <button id="move-cancel-btn" class="flex-1 py-2.5 px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-sm font-bold transition">Batal</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            lucide.createIcons();
+
+            document.getElementById('move-confirm-btn').addEventListener('click', function() {
+                const targetIdx = parseInt(document.getElementById('move-target-class').value);
+                const targetClass = distributedClasses[targetIdx];
+                if (!targetClass) return;
+
+                // Remove from source
+                sourceClass.students.splice(studentIdx, 1);
+                sourceClass.seating = arrangeSeating(sourceClass.students);
+
+                // Add to target
+                targetClass.students.push(student);
+                targetClass.students.sort((a, b) => a.namaSiswa.localeCompare(b.namaSiswa));
+                targetClass.seating = arrangeSeating(targetClass.students);
+
+                modal.remove();
+                renderClassTabs();
+                renderStatsPanel();
+                renderClassContent();
+                showToast("Siswa Dipindahkan", `${student.namaSiswa} dipindahkan ke Kelas VII ${targetClass.letter}.`, 'success');
+                saveResultToFirestore();
+            });
+
+            document.getElementById('move-cancel-btn').addEventListener('click', function() {
+                modal.remove();
+            });
+
+            // Close on backdrop click
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) modal.remove();
+            });
+        }
+
+        // 2. Quick Re-distribute (re-sort current students into classes)
+        function quickRedistribute() {
+            if (rawStudents.length === 0) {
+                showToast("Data Kosong", "Tidak ada data siswa untuk didistribusikan ulang.", "error");
+                return;
+            }
+            processAndDistribute();
+        }
+
+        // 3. Student Detail Tooltip (shows on hover in list view)
+        function showStudentTooltip(studentIdx, event) {
+            const activeClass = distributedClasses[activeClassIndex];
+            const student = activeClass.students[studentIdx];
+            if (!student) return;
+
+            // Remove existing tooltip
+            const existing = document.getElementById('student-tooltip');
+            if (existing) existing.remove();
+
+            const tooltip = document.createElement('div');
+            tooltip.id = 'student-tooltip';
+            tooltip.className = 'fixed z-[999999] bg-slate-900 text-white text-xs rounded-xl p-3 shadow-2xl pointer-events-none max-w-xs';
+            tooltip.style.animation = 'modalFadeIn 0.15s ease';
+
+            const schoolSet = new Set(activeClass.students.map(s => s.namaSekolah));
+            const schoolCount = schoolSet.size;
+            const sameSchoolCount = activeClass.students.filter(s => s.namaSekolah === student.namaSekolah).length;
+
+            tooltip.innerHTML = `
+                <div class="flex items-center gap-2 mb-2 pb-2 border-b border-slate-700">
+                    <div class="w-7 h-7 rounded-full ${student.jenisKelamin === 'L' ? 'bg-blue-600' : 'bg-pink-600'} flex items-center justify-center text-[10px] font-extrabold">${student.jenisKelamin}</div>
+                    <div>
+                        <p class="font-bold text-sm">${student.namaSiswa}</p>
+                        <p class="text-slate-400 text-[10px]">NISN: ${student.nisn}</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-slate-300">
+                    <div><span class="text-slate-500 block text-[9px] uppercase">Skor Nilai</span><span class="font-bold text-amber-400">${student.skorNilai}</span></div>
+                    <div><span class="text-slate-500 block text-[9px] uppercase">Asal Sekolah</span><span class="font-semibold">${student.namaSekolah}</span></div>
+                    <div><span class="text-slate-500 block text-[9px] uppercase">Prestasi</span><span class="${student.prestasi === 'Sertifikat' ? 'text-emerald-400 font-bold' : 'text-slate-500'}">${student.prestasi === 'Sertifikat' ? '✓ Ada' : 'Tidak Ada'}</span></div>
+                    <div><span class="text-slate-500 block text-[9px] uppercase">Teman Sekolah</span><span class="font-semibold">${sameSchoolCount} siswa</span></div>
+                </div>
+            `;
+
+            document.body.appendChild(tooltip);
+
+            // Position near cursor
+            const rect = event.target.getBoundingClientRect();
+            const tooltipRect = tooltip.getBoundingClientRect();
+            let left = rect.right + 8;
+            let top = rect.top;
+
+            // Prevent overflow
+            if (left + tooltipRect.width > window.innerWidth - 10) {
+                left = rect.left - tooltipRect.width - 8;
+            }
+            if (top + tooltipRect.height > window.innerHeight - 10) {
+                top = window.innerHeight - tooltipRect.height - 10;
+            }
+
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+        }
+
+        function hideStudentTooltip() {
+            const tooltip = document.getElementById('student-tooltip');
+            if (tooltip) tooltip.remove();
+        }
+
+        // 4. Keyboard Shortcuts
+        function initKeyboardShortcuts() {
+            document.addEventListener('keydown', function(e) {
+                // Escape: close any open modal
+                if (e.key === 'Escape') {
+                    const editModal = document.getElementById('edit-student-modal');
+                    const moveModal = document.getElementById('move-student-modal');
+                    if (editModal) editModal.remove();
+                    if (moveModal) moveModal.remove();
+                    hideStudentTooltip();
+                }
+
+                // Ctrl+Shift+E: Export to Excel
+                if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+                    e.preventDefault();
+                    if (distributedClasses.length > 0) exportToExcel();
+                }
+
+                // Ctrl+Shift+P: Print Preview
+                if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+                    e.preventDefault();
+                    if (distributedClasses.length > 0) {
+                        showPrintPreview();
+                    }
+                }
+
+                // Ctrl+Shift+R: Quick Redistribute
+                if (e.ctrlKey && e.shiftKey && e.key === 'R') {
+                    e.preventDefault();
+                    quickRedistribute();
+                }
+
+                // Left/Right arrows: switch class tabs (when not in input)
+                if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+                    if (distributedClasses.length > 0 && viewMode !== 'comparison') {
+                        e.preventDefault();
+                        if (e.key === 'ArrowLeft' && activeClassIndex > 0) {
+                            activeClassIndex--;
+                            renderClassTabs();
+                            renderClassContent();
+                        } else if (e.key === 'ArrowRight' && activeClassIndex < distributedClasses.length - 1) {
+                            activeClassIndex++;
+                            renderClassTabs();
+                            renderClassContent();
+                        }
+                    }
+                }
+            });
+        }
+
+        // Expose new functions globally
+        window.moveStudent = moveStudent;
+        window.showStudentTooltip = showStudentTooltip;
+        window.hideStudentTooltip = hideStudentTooltip;
+        window.quickRedistribute = quickRedistribute;
+        window.batchMoveSelectedStudents = batchMoveSelectedStudents;
+        window.toggleSelectAll = toggleSelectAll;
+        window.updateSelectionUI = updateSelectionUI;
+        window.undoLastDelete = undoLastDelete;
+        window.exportToCSV = exportToCSV;
+        window.launchConfetti = launchConfetti;
+        window.showPrintPreview = showPrintPreview;
+
         // Memulai Inisialisasi saat Window dimuat
         window.onload = function() {
             // Inisialisasi daftar pengaturan kelas saat pertama kali dimuat
             initClassConfigurations();
 
             initFirebase();
-        // Bind update listeners untuk inputs utama
+            initKeyboardShortcuts();
         const configInputs = document.querySelectorAll('.config-input');
         if (configInputs) {
             configInputs.forEach(el => {
@@ -2095,6 +2789,21 @@
             });
         }
 
+        // Export CSV button
+        const btnExportCsv = document.getElementById('btn-export-csv');
+        if (btnExportCsv) {
+            btnExportCsv.addEventListener('click', () => {
+                exportToCSV();
+            });
+        }
+
+        // Quick Redistribute button
+        if (btnQuickRedistribute) {
+            btnQuickRedistribute.addEventListener('click', () => {
+                quickRedistribute();
+            });
+        }
+
         // Jumlah Kelas change listener
         if (configClassesInput) {
             configClassesInput.addEventListener('change', () => {
@@ -2131,14 +2840,7 @@
             // Pengikat tombol cetak PDF secara eksplisit
             if (btnPrintAll) {
                 btnPrintAll.addEventListener('click', () => {
-                    if (distributedClasses.length === 0) {
-                        showToast("Tidak Ada Data", "Silakan susun pembagian kelas terlebih dahulu.", "error");
-                        return;
-                    }
-                    preparePrintArea();
-                    setTimeout(() => {
-                        window.print();
-                    }, 500);
+                    showPrintPreview();
                 });
             }
             // Manual Student Entry - Toggle Panel
