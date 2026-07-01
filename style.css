@@ -1,16 +1,24 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
-body { font-family: 'Plus Jakarta Sans', sans-serif; }
-.logo-transparent { background: transparent !important; }
-.scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
-.scrollbar-thin::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
-.scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
 
-/* Setup Area Cetak */
-#print-area { display: none; }
+/* Mengamankan logo PNG transparan agar menyatu dengan latar belakang */
+.logo-transparent {
+    background: transparent !important;
+}
+
+/* Mengatasi masalah print terpotong atau gagal karena Tailwind hidden */
+#print-area {
+    display: none;
+}
 
 @media print {
-    .no-print, header, main, footer, #toast-container { display: none !important; }
+    /* Sembunyikan elemen non-cetak */
+    .no-print, header, main, footer, #toast-container {
+        display: none !important;
+    }
     
     body {
         background: white !important;
@@ -19,20 +27,28 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; }
         padding: 0 !important;
     }
     
-    @page { size: A4 portrait; margin: 1cm 0.5cm 0.5cm 0.5cm; }
+    /* Setelan ukuran kertas A4 dengan margin atas 1cm dan sisi lain 0,5cm sesuai permintaan */
+    @page {
+        size: A4;
+        margin: 1cm 0.5cm 0.5cm 0.5cm;
+    }
     
     #print-area {
         display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
         width: 100% !important;
+        z-index: 9999999 !important;
     }
     
+    /* Memaksa cetakan kelas muat dalam lembar halaman A4 terpisah */
     .print-page {
-        display: flex !important;
-        flex-direction: column !important;
+        display: block !important;
         page-break-after: always !important;
         page-break-inside: avoid !important;
         width: 100% !important;
-        height: 28cm !important;
+        height: 28.2cm !important; /* Tinggi kertas A4 setelah dikurangi total margin atas-bawah */
         box-sizing: border-box !important;
         margin: 0 !important;
         padding: 0 !important;
@@ -40,5 +56,8 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; }
         overflow: hidden !important;
     }
     
-    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
 }
