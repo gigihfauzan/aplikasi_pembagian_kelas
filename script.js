@@ -1,4 +1,4 @@
-// Global State (DIPOSISIKAN DI ATAS UNTUK KEAMANAN INSTANSIASI)
+        // Global State (DIPOSISIKAN DI ATAS UNTUK KEAMANAN INSTANSIASI)
         let rawStudents = [];
         let distributedClasses = [];
         let activeClassIndex = 0;
@@ -2313,7 +2313,3 @@
             window.deleteStudent = deleteStudent;
             window.handleFile = handleFile;
         };
---- END ---
---- END ---
---- END ---
---- END ---
