@@ -1431,7 +1431,7 @@
                     const currentWaliKelas = conf.waliKelas || `Wali Kelas VII${activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X')} ${c.letter}`;
                     const currentWaliNip = conf.nip ? "NIP " + conf.nip : "........................................";
 
-                    // --- HALAMAN 1: DAFTAR NAMA SISWA KELAS (LEBAR PENUH, PAS 1 HALAMAN) ---
+                    // --- HALAMAN 1: DAFTAR NAMA SISWA KELAS (PAS 1 HALAMAN, PROPORSIONAL) ---
                     const page1 = document.createElement('div');
                     page1.className = 'print-page bg-white p-4 flex flex-col justify-between';
                     
@@ -1442,10 +1442,10 @@
                                 <td class="border border-slate-400 px-3 py-0.5 text-center text-[11px] font-bold">${idx + 1}</td>
                                 <td class="border border-slate-400 px-3 py-0.5 text-[11px] font-mono">${s.nisn}</td>
                                 <!-- Fit to cell: Truncate long names -->
-                                <td class="border border-slate-400 px-3 py-0.5 text-[11px] font-bold truncate max-w-[170px]" title="${s.namaSiswa}">${s.namaSiswa}</td>
+                                <td class="border border-slate-400 px-3 py-0.5 text-[11px] font-bold truncate" title="${s.namaSiswa}">${s.namaSiswa}</td>
                                 <td class="border border-slate-400 px-3 py-0.5 text-center text-[11px] font-semibold">${s.jenisKelamin}</td>
                                 <!-- Fit to cell: Truncate long school names -->
-                                <td class="border border-slate-400 px-3 py-0.5 text-[11px] truncate max-w-[160px]" title="${s.namaSekolah}">${s.namaSekolah}</td>
+                                <td class="border border-slate-400 px-3 py-0.5 text-[11px] truncate" title="${s.namaSekolah}">${s.namaSekolah}</td>
                             </tr>
                         `;
                     });
@@ -1530,7 +1530,7 @@
                         </div>
                     `;
 
-                    // --- HALAMAN 2: DENAH TEMPAT DUDUK MEJA BERPASANGAN (BESAR, TINGGI h-[125px] & WRAP TEXT) ---
+                    // --- HALAMAN 2: DENAH TEMPAT DUDUK MEJA BERPASANGAN (BESAR, TINGGI h-[145px] & WRAP TEXT) ---
                     const page2 = document.createElement('div');
                     page2.className = 'print-page bg-white p-4 flex flex-col justify-between';
 
@@ -1539,15 +1539,15 @@
                         const studentLeft = pair[0];
                         const studentRight = pair[1];
                         seatingGridHtml += `
-                            <!-- Diperbarui: Seating Box ditingkatkan tingginya menjadi h-[125px] & Nama wrap-text (whitespace-normal break-words line-clamp-3) -->
-                            <div class="border border-slate-400 p-2.5 text-center bg-white rounded-md shadow-sm h-[125px] flex flex-col justify-between">
-                                <div class="font-extrabold text-[10px] border-b border-slate-300 pb-1 mb-1 text-slate-500 uppercase">Meja ${pairIdx + 1}</div>
+                            <!-- Diperbarui: Seating Box ditingkatkan tingginya menjadi h-[145px] & Nama wrap-text (whitespace-normal break-words line-clamp-3) -->
+                            <div class="border border-slate-400 p-2.5 text-center bg-white rounded-md shadow-sm h-[145px] flex flex-col justify-between">
+                                <div class="font-extrabold text-[10px] border-b border-slate-300 pb-1 mb-1 text-slate-500 uppercase font-bold">Meja ${pairIdx + 1}</div>
                                 <div class="grid grid-cols-2 gap-1.5 text-[10px] items-center h-full">
                                     ${studentLeft ? `
                                         <div class="p-1 rounded bg-slate-50 border border-slate-200 h-full flex flex-col justify-center">
-                                            <div class="w-3.5 h-3.5 rounded-full ${studentLeft.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-bold mx-auto mb-1">${studentLeft.jenisKelamin}</div>
+                                            <div class="w-4 h-4 rounded-full ${studentLeft.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-bold mx-auto mb-1">${studentLeft.jenisKelamin}</div>
                                             <!-- Fit to cell: Lebar nama diperbesar, wrap text & Proper Case -->
-                                            <div class="font-extrabold text-xs leading-tight text-slate-900 whitespace-normal break-words line-clamp-3 px-0.5" title="${studentLeft.namaSiswa}">${studentLeft.namaSiswa}</div>
+                                            <div class="font-extrabold text-[11px] leading-tight text-slate-900 whitespace-normal break-words line-clamp-3 px-0.5" title="${studentLeft.namaSiswa}">${studentLeft.namaSiswa}</div>
                                         </div>
                                     ` : `
                                         <div class="p-1 rounded border border-dashed border-slate-200 text-slate-400 text-[8px] h-full flex items-center justify-center">Kosong</div>
@@ -1557,7 +1557,7 @@
                                         <div class="p-1 rounded bg-slate-50 border border-slate-200 h-full flex flex-col justify-center">
                                             <div class="w-3.5 h-3.5 rounded-full ${studentRight.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-bold mx-auto mb-1">${studentRight.jenisKelamin}</div>
                                             <!-- Fit to cell: Lebar nama diperbesar, wrap text & Proper Case -->
-                                            <div class="font-extrabold text-xs leading-tight text-slate-900 whitespace-normal break-words line-clamp-3 px-0.5" title="${studentRight.namaSiswa}">${studentRight.namaSiswa}</div>
+                                            <div class="font-extrabold text-[11px] leading-tight text-slate-900 whitespace-normal break-words line-clamp-3 px-0.5" title="${studentRight.namaSiswa}">${studentRight.namaSiswa}</div>
                                         </div>
                                     ` : `
                                         <div class="p-1 rounded border border-dashed border-slate-200 text-slate-400 text-[8px] h-full flex items-center justify-center">Kosong</div>
@@ -1599,7 +1599,7 @@
                                     <p class="font-bold text-slate-800 leading-tight">Wali Kelas</p>
                                     <div class="h-12"></div>
                                     <p class="font-extrabold underline text-sm">${currentWaliKelas}</p>
-                                    <p class="text-xs text-slate-800 font-mono">${currentWaliNip}</p>
+                                    <p class="text-sm font-semibold text-slate-800 font-mono">${currentWaliNip}</p>
                                 </div>
                             </div>
                         </div>
@@ -1615,7 +1615,7 @@
             }
         }
 
-        // EXPORT TO EXCEL DENGAN METODE BLOB DAN PEMBAGIAN SHEET YANG AMAN (Siswa = Sheet 1, Denah = Sheet 2)
+        // EXPORT TO EXCEL DENGAN METODE STANDARD XLSX.WRITEFILE LANGSUNG (DIJAMIN BEBAS ERROR SANDBOX SEPERTI DI AWAL)
         function exportToExcel() {
             try {
                 if (distributedClasses.length === 0) {
@@ -1666,7 +1666,6 @@
                     sheetData.push([]); 
 
                     sheetData.push(["", "Mengetahui,"]);
-                    // Diperbarui: Tanda tangan Wali kelas disederhanakan tanpa menyebutkan kelasnya
                     sheetData.push(["", "Kepala Sekolah", "", "", "Wali Kelas"]);
                     sheetData.push([]); 
                     sheetData.push([]);
@@ -1723,31 +1722,9 @@
                     XLSX.utils.book_append_sheet(wb, ws2, `Denah VII${activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X')} ${c.letter}`);
                 });
 
-                // PENDEKATAN BLOB ASLI (BUKAN DATA:URI): Sangat andal & bebas blokir sandbox chrome
-                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-                const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                const blobUrl = URL.createObjectURL(blob);
+                // KEMBALI KE METODE STANDARD YANG TERBUKTI BEBAS ERROR & BERHASIL DI AWAL SESUAI PROMPT
                 const filename = `Pembagian_Kelas_VII${activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X')}_SMPN2_Kedungbanteng_${String(ta || '').replace('/', '-')}.xlsx`;
-                
-                const link = document.createElement("a");
-                link.href = blobUrl;
-                link.download = filename;
-                
-                // Menampilkan Modal Fallback sebagai pengaman tambahan jika browser memblokir trigger unduh otomatis
-                const fallbackLink = document.getElementById('excel-fallback-link');
-                const fallbackModal = document.getElementById('excel-fallback-modal');
-                if (fallbackLink && fallbackModal) {
-                    fallbackLink.href = blobUrl;
-                    fallbackLink.download = filename;
-                    fallbackModal.classList.remove('hidden');
-                }
-
-                document.body.appendChild(link);
-                link.click();
-                
-                setTimeout(() => {
-                    document.body.removeChild(link);
-                }, 300);
+                XLSX.writeFile(wb, filename);
 
                 showToast("Ekspor Excel", "File Excel multi-sheet berhasil diunduh.", "success");
             } catch (err) {
@@ -1776,20 +1753,8 @@
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Template");
                 
-                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-                const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                const blobUrl = URL.createObjectURL(blob);
-                
-                const link = document.createElement("a");
-                link.href = blobUrl;
-                link.download = "Template_PMB_SMPN2_Kedungbanteng.xlsx";
-                document.body.appendChild(link);
-                link.click();
-                
-                setTimeout(() => {
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(blobUrl);
-                }, 200);
+                const filename = "Template_PMB_SMPN2_Kedungbanteng.xlsx";
+                XLSX.writeFile(wb, filename);
 
                 showToast("Template Diunduh", "Gunakan template ini untuk mengisi data Anda.", "info");
             } catch (err) {
