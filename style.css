@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* Mengamankan logo PNG transparan agar menyatu dengan latar belakang */
+.logo-transparent {
+    background: transparent !important;
+}
+
+/* Scrollbar Kustom untuk tabel dan daftar */
+.scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Mengatasi masalah print terpotong atau gagal karena Tailwind hidden */
+#print-area {
+    display: none;
+}
+
+@media print {
+    /* Sembunyikan elemen non-cetak */
+    .no-print, header, main, footer, #toast-container {
+        display: none !important;
+    }
+    
+    body {
+        background: white !important;
+        color: black !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* Setelan ukuran kertas A4 dengan margin atas 1cm dan sisi lain 0,5cm sesuai permintaan */
+    @page {
+        size: A4;
+        margin: 1cm 0.5cm 0.5cm 0.5cm;
+    }
+    
+    #print-area {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100% !important;
+        z-index: 9999999 !important;
+    }
+    
+    /* Memaksa cetakan kelas muat dalam lembar halaman A4 terpisah */
+    .print-page {
+        display: block !important;
+        page-break-after: always !important;
+        page-break-inside: avoid !important;
+        width: 100% !important;
+        height: 28.2cm !important; /* Tinggi kertas A4 setelah dikurangi margin */
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        overflow: hidden !important;
+    }
+    
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
