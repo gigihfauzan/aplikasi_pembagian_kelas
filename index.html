@@ -283,10 +283,26 @@
                         </div>
 
                         <!-- Global Export Controls -->
-                        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                        <div class="flex flex-wrap gap-2 w-full sm:w-auto items-center">
+                            <span class="hidden sm:flex items-center gap-1 text-[9px] text-slate-400 mr-1">
+                                <span class="shortcut-hint">←→</span> Navigasi
+                                <span class="shortcut-hint ml-1">Esc</span> Tutup
+                            </span>
+                            <button id="btn-batch-move" onclick="batchMoveSelectedStudents()" class="hidden px-3 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 shadow-sm">
+                                <i data-lucide="arrow-right-left" class="w-3.5 h-3.5"></i>
+                                Pindahkan Terpilih
+                            </button>
+                            <button id="btn-quick-redistribute" class="flex-grow sm:flex-grow-0 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 shadow-sm">
+                                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                Susun Ulang
+                            </button>
                             <button id="btn-export-excel" class="flex-grow sm:flex-grow-0 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 shadow-sm">
                                 <i data-lucide="file-down" class="w-4 h-4"></i>
                                 Ekspor Semua Kelas (Excel)
+                            </button>
+                            <button id="btn-export-csv" class="flex-grow sm:flex-grow-0 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 shadow-sm">
+                                <i data-lucide="file-text" class="w-4 h-4"></i>
+                                Ekspor CSV
                             </button>
                             <button id="btn-print-all" class="flex-grow sm:flex-grow-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 shadow-sm">
                                 <i data-lucide="printer" class="w-4 h-4"></i>
