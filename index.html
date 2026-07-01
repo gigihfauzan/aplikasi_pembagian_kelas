@@ -16,21 +16,22 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     
+    <!-- ========================================== -->
+    <!-- MODUL CSS / STYLING                        -->
+    <!-- ========================================== -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
-        /* Mengamankan logo PNG transparan agar menyatu dengan latar belakang */
         .logo-transparent {
             background: transparent !important;
         }
-        /* Mengatasi masalah print terpotong atau gagal karena Tailwind hidden */
         #print-area {
             display: none;
         }
+        /* Mode Cetak A4 PDF */
         @media print {
-            /* Sembunyikan elemen non-cetak */
             .no-print, header, main, footer, #toast-container {
                 display: none !important;
             }
@@ -40,7 +41,6 @@
                 margin: 0 !important;
                 padding: 0 !important;
             }
-            /* Setelan ukuran kertas A4 dengan margin atas 1cm dan sisi lain 0,5cm sesuai permintaan */
             @page {
                 size: A4;
                 margin: 1cm 0.5cm 0.5cm 0.5cm;
@@ -53,13 +53,12 @@
                 width: 100% !important;
                 z-index: 9999999 !important;
             }
-            /* Memaksa cetakan kelas muat dalam lembar halaman A4 terpisah */
             .print-page {
                 display: block !important;
                 page-break-after: always !important;
                 page-break-inside: avoid !important;
                 width: 100% !important;
-                height: 28.2cm !important; /* Tinggi kertas A4 setelah dikurangi total margin atas-bawah */
+                height: 28.2cm !important; 
                 box-sizing: border-box !important;
                 margin: 0 !important;
                 padding: 0 !important;
@@ -75,11 +74,12 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-    <!-- Header / Navbar -->
+    <!-- ========================================== -->
+    <!-- MODUL HTML: HEADER & NAVIGASI              -->
+    <!-- ========================================== -->
     <header class="bg-blue-900 text-white shadow-md no-print">
         <div class="container mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
-                <!-- Latar belakang putih & shadow pada div logo dihilangkan sepenuhnya agar transparan -->
                 <div class="flex items-center justify-center w-14 h-14 overflow-hidden bg-transparent logo-transparent">
                     <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-full h-full object-contain" alt="Logo SMPN 2 Kedungbanteng" onerror="this.style.display='none'">
                 </div>
@@ -89,7 +89,6 @@
                 </div>
             </div>
             
-            <!-- Firebase Connection Status Badge -->
             <div class="flex flex-wrap items-center gap-2">
                 <div id="firebase-status" class="flex items-center gap-1.5 text-xs bg-slate-800/80 text-slate-400 px-3 py-1.5 rounded-full border border-slate-700">
                     <span class="w-2 h-2 rounded-full bg-slate-500"></span>
@@ -103,7 +102,6 @@
         </div>
     </header>
 
-    <!-- Main Navigation Tabs for Grade Selection VII, VIII, IX -->
     <div class="bg-slate-100 border-b border-slate-200 no-print">
         <div class="container mx-auto px-4 flex gap-1">
             <button onclick="switchGrade(7)" id="btn-grade-7" class="px-6 py-3 text-sm font-extrabold border-b-2 border-blue-900 text-blue-900 transition flex items-center gap-2">
@@ -118,17 +116,17 @@
         </div>
     </div>
 
+    <!-- ========================================== -->
+    <!-- MODUL HTML: MAIN DASHBOARD                 -->
+    <!-- ========================================== -->
     <main class="flex-grow container mx-auto px-4 py-6 max-w-7xl no-print">
-        <!-- Toast Notification Area -->
         <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 no-print"></div>
 
-        <!-- Dashboard Grid Layout -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 no-print">
             
-            <!-- Left Panel: Configuration & Import -->
+            <!-- PANEL KIRI (Input & Pengaturan) -->
             <div class="lg:col-span-5 flex flex-col gap-6">
-                
-                <!-- 1. Configuration Card -->
+                <!-- Konfigurasi Dokumen -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
                     <div class="flex items-center justify-between mb-4 border-b pb-3 border-slate-100">
                         <div class="flex items-center gap-2">
@@ -152,7 +150,6 @@
                             </div>
                         </div>
 
-                        <!-- Kriteria Pembagian Mapel Prakarya/Seni Budaya khusus Kelas VIII -->
                         <div id="panel-classes-mapel-v8" class="hidden bg-blue-50/40 p-4 rounded-xl border border-blue-100 space-y-3">
                             <h3 class="text-xs font-extrabold text-blue-900 uppercase tracking-wider flex items-center gap-1">
                                 <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
@@ -180,7 +177,6 @@
                             </div>
                         </div>
 
-                        <!-- Kepala Sekolah Sign Settings (Diperbarui isian default-nya sesuai permintaan) -->
                         <div class="border-t pt-3 border-slate-100">
                             <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1">
                                 <i data-lucide="user-check" class="w-3.5 h-3.5 text-blue-600"></i>
@@ -194,27 +190,18 @@
                     </div>
                 </div>
 
-                <!-- 2. Dynamic Class Customization Accordion/List -->
+                <!-- Setelan Wali Kelas -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
                     <div class="flex items-center justify-between mb-4 border-b pb-3 border-slate-100">
                         <div class="flex items-center gap-2">
                             <i data-lucide="settings-2" class="text-blue-600 w-5 h-5"></i>
                             <h2 class="font-bold text-lg text-slate-900" id="wali-card-title">Tipe Kelas & Wali Kelas VII</h2>
                         </div>
-                        <span class="text-[10px] bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-full font-bold uppercase">Kustom</span>
                     </div>
-
-                    <p class="text-xs text-slate-500 mb-4">
-                        Atur tipe pembagian (Reguler / Akademik / Prestasi) serta nama & NIP Wali Kelas secara spesifik untuk masing-masing kelas di bawah ini.
-                    </p>
-
-                    <!-- Scrollable Container of Class Settings -->
-                    <div id="class-settings-list" class="space-y-3 max-h-[320px] overflow-y-auto pr-1 scrollbar-thin">
-                        <!-- Dynamic Class Customizer Rows will go here -->
-                    </div>
+                    <div id="class-settings-list" class="space-y-3 max-h-[320px] overflow-y-auto pr-1 scrollbar-thin"></div>
                 </div>
 
-                <!-- 3. Siswa Keluar / Dropped-Out Manager (Sangat Interaktif & Dibutuhkan untuk VIII & IX) -->
+                <!-- Pengelola Siswa Keluar (VIII & IX) -->
                 <div id="panel-dropped-out" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hidden">
                     <div class="flex items-center justify-between mb-3 border-b pb-3 border-slate-100">
                         <div class="flex items-center gap-2">
@@ -223,203 +210,110 @@
                         </div>
                         <span id="dropped-count-badge" class="text-[10px] bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full font-bold">0 Keluar</span>
                     </div>
-                    
-                    <p class="text-xs text-slate-500 mb-3">
-                        Gunakan kolom pencarian di bawah untuk mengeluarkan anak yang telah pindah/tidak melanjutkan sebelum proses penyusunan kelas dijalankan.
-                    </p>
-                    
                     <input type="text" id="search-students-out" oninput="searchAndRenderOutStudents()" placeholder="Cari nama siswa..." class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-rose-500 focus:outline-none mb-3">
-                    
-                    <!-- Search Results Area -->
-                    <div id="dropped-search-results" class="space-y-1.5 max-h-[160px] overflow-y-auto scrollbar-thin divide-y divide-slate-100">
-                        <p class="text-slate-400 text-center text-xs py-4">Ketik nama untuk mencari siswa.</p>
-                    </div>
+                    <div id="dropped-search-results" class="space-y-1.5 max-h-[160px] overflow-y-auto scrollbar-thin divide-y divide-slate-100"></div>
                 </div>
 
-                <!-- 4. Import Excel Card -->
+                <!-- Import Area -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
                     <div class="flex items-center gap-2 mb-4 border-b pb-3 border-slate-100">
                         <i data-lucide="file-spreadsheet" class="text-blue-600 w-5 h-5"></i>
                         <h2 class="font-bold text-lg text-slate-900">Input Data Siswa</h2>
                     </div>
 
-                    <!-- Dropzone Area -->
                     <div id="dropzone" class="border-2 border-dashed border-slate-200 hover:border-blue-500 rounded-xl p-5 text-center cursor-pointer transition bg-slate-50 hover:bg-blue-50/20 group">
                         <input type="file" id="file-input" accept=".xlsx, .xls, .csv" class="hidden">
                         <i data-lucide="upload-cloud" class="w-8 h-8 text-slate-400 group-hover:text-blue-600 mx-auto mb-2 transition"></i>
                         <p class="text-xs font-semibold text-slate-700">Pilih atau Seret File Excel PMB</p>
-                        <p class="text-[10px] text-slate-400 mt-1">Format: .xlsx / .xls / .csv</p>
                     </div>
 
                     <div class="mt-4 flex flex-col gap-2">
-                        <!-- Load Demo Data Button -->
                         <button id="btn-demo" class="w-full py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs transition flex items-center justify-center gap-2">
-                            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
-                            Gunakan Data Simulasi (240 Siswa)
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i> Gunakan Data Simulasi
                         </button>
-                        <!-- Download Template -->
                         <button id="btn-template" class="w-full py-2 px-4 bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 rounded-xl font-semibold text-xs transition flex items-center justify-center gap-2">
-                            <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                            Unduh Template Excel
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i> Unduh Template Excel
+                        </button>
+                        <button id="btn-process" class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition shadow-md mt-2">
+                            Susun & Bagi Kelas
                         </button>
                     </div>
-
-                    <!-- Process/Generate Button -->
-                    <button id="btn-process" class="w-full mt-4 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform active:scale-[0.98]">
-                        <i data-lucide="play" class="w-4 h-4 fill-white"></i>
-                        Susun & Bagi Kelas
-                    </button>
-
-                    <!-- Restore Cloud Result Button (Dynamically shown when connected) -->
-                    <button id="btn-load-cloud" onclick="loadResultFromFirestore(true)" class="w-full mt-2 py-2 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 border border-emerald-200 hidden">
-                        <i data-lucide="cloud-download" class="w-4 h-4 animate-bounce"></i>
-                        Muat Hasil Terakhir dari Cloud
-                    </button>
                 </div>
 
-                <!-- Stats Summary Panel -->
+                <!-- Stats -->
                 <div id="quick-stats" class="bg-gradient-to-br from-blue-900 to-indigo-950 text-white rounded-2xl p-6 shadow-md hidden">
-                    <h3 class="font-bold text-sm text-blue-200 uppercase tracking-widest mb-3">Statistik Data Masuk</h3>
+                    <h3 class="font-bold text-sm text-blue-200 uppercase tracking-widest mb-3">Statistik Data</h3>
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-white/10 p-3 rounded-xl">
-                            <p class="text-xs text-blue-300">Total Siswa</p>
-                            <p class="text-xl font-bold" id="stat-total-students">0</p>
-                        </div>
-                        <div class="bg-white/10 p-3 rounded-xl">
-                            <p class="text-xs text-blue-300">Laki-Laki (L)</p>
-                            <p class="text-xl font-bold" id="stat-boys">0</p>
-                        </div>
-                        <div class="bg-white/10 p-3 rounded-xl">
-                            <p class="text-xs text-blue-300">Perempuan (P)</p>
-                            <p class="text-xl font-bold" id="stat-girls">0</p>
-                        </div>
-                        <div class="bg-white/10 p-3 rounded-xl">
-                            <p class="text-xs text-blue-300">Punya Prestasi</p>
-                            <p class="text-xl font-bold" id="stat-prestasi">0</p>
-                        </div>
+                        <div class="bg-white/10 p-3 rounded-xl"><p class="text-xs text-blue-300">Total</p><p class="text-xl font-bold" id="stat-total-students">0</p></div>
+                        <div class="bg-white/10 p-3 rounded-xl"><p class="text-xs text-blue-300">Laki-laki</p><p class="text-xl font-bold" id="stat-boys">0</p></div>
+                        <div class="bg-white/10 p-3 rounded-xl"><p class="text-xs text-blue-300">Perempuan</p><p class="text-xl font-bold" id="stat-girls">0</p></div>
+                        <div class="bg-white/10 p-3 rounded-xl"><p class="text-xs text-blue-300">Prestasi</p><p class="text-xl font-bold" id="stat-prestasi">0</p></div>
                     </div>
                 </div>
-
             </div>
 
-            <!-- Right Panel: Processing, Result Tabs, Visualizer -->
+            <!-- PANEL KANAN (Hasil Layout) -->
             <div class="lg:col-span-7 flex flex-col gap-6">
-                
-                <!-- Main Processing State Card -->
+                <!-- State Awal -->
                 <div id="main-state-card" class="bg-white rounded-2xl p-12 text-center border border-slate-100 shadow-sm flex flex-col items-center justify-center min-h-[400px]">
                     <div class="bg-blue-50 p-4 rounded-full text-blue-600 mb-4 animate-bounce">
-                        <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-16 h-16 object-contain logo-transparent" alt="Logo SMPN 2 Kedungbanteng">
+                        <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-16 h-16 object-contain logo-transparent">
                     </div>
                     <h3 class="text-xl font-bold text-slate-800">Menunggu Unggahan Data</h3>
-                    <!-- Diperbarui: ID dipertahankan konsisten sebagai main-state-text -->
                     <p class="text-slate-500 max-w-md mx-auto mt-2 text-sm leading-relaxed" id="main-state-text">
-                        Silakan unggah berkas Excel atau gunakan tombol <span class="font-semibold text-blue-600">Data Simulasi</span>, lalu sesuaikan pemetaan Wali Kelas sebelum menekan tombol <span class="font-semibold text-blue-600">Susun & Bagi Kelas</span>.
+                        Silakan unggah berkas Excel terlebih dahulu.
                     </p>
                 </div>
 
-                <!-- Result Card (Tabs of Classes) -->
+                <!-- Kartu Hasil -->
                 <div id="result-card" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hidden">
-                    
-                    <!-- Tabs Navigation -->
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b border-slate-100 pb-4">
                         <div>
                             <h2 class="font-extrabold text-xl text-slate-900 flex items-center gap-2">
-                                <i data-lucide="check-circle" class="text-emerald-500 w-6 h-6"></i>
-                                Hasil Penyusunan Kelas
+                                <i data-lucide="check-circle" class="text-emerald-500 w-6 h-6"></i> Hasil Penyusunan
                             </h2>
-                            <p class="text-xs text-slate-500 mt-0.5">Komposisi seimbang sesuai rasio gender, sekolah asal, dan tipe kelas.</p>
                         </div>
-
-                        <!-- Global Export Controls -->
                         <div class="flex flex-wrap gap-2 w-full sm:w-auto">
-                            <!-- Tombol Ekspor Manual Fallback Iframe -->
-                            <button id="btn-export-excel" class="flex-grow sm:flex-grow-0 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 shadow-sm">
-                                <i data-lucide="file-down" class="w-4 h-4"></i>
-                                Ekspor Semua Kelas (Excel)
+                            <button id="btn-export-excel" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 shadow-sm">
+                                <i data-lucide="file-down" class="w-4 h-4"></i> Ekspor Semua (Excel)
                             </button>
-                            <button id="btn-print-all" class="flex-grow sm:flex-grow-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 shadow-sm">
-                                <i data-lucide="printer" class="w-4 h-4"></i>
-                                Cetak Semua PDF
+                            <button id="btn-print-all" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 shadow-sm">
+                                <i data-lucide="printer" class="w-4 h-4"></i> Cetak Semua PDF
                             </button>
                         </div>
                     </div>
 
-                    <!-- Mode Tab Toggles: List vs Seating Chart -->
                     <div class="flex gap-2 mb-4 bg-slate-100 p-1 rounded-xl w-fit">
                         <button id="toggle-list-view" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-800 shadow-sm transition flex items-center gap-1.5">
-                            <i data-lucide="list" class="w-3.5 h-3.5"></i>
-                            Daftar Siswa
+                            <i data-lucide="list" class="w-3.5 h-3.5"></i> Daftar Siswa
                         </button>
                         <button id="toggle-seating-view" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-800 transition flex items-center gap-1.5">
-                            <i data-lucide="grid-3x3" class="w-3.5 h-3.5"></i>
-                            Denah Tempat Duduk
+                            <i data-lucide="grid-3x3" class="w-3.5 h-3.5"></i> Denah
                         </button>
                     </div>
 
-                    <!-- Class Letters Tab Navigation -->
-                    <div class="flex gap-1.5 overflow-x-auto pb-2 mb-6 scrollbar-thin scrollbar-thumb-slate-200" id="class-tabs">
-                        <!-- Dynamic generated tabs of classes -->
-                    </div>
-
-                    <!-- Dynamic Content Panel -->
-                    <div id="dynamic-content-area">
-                        <!-- Content of selected class (Table / Seating Layout) -->
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-        <!-- MODAL CADANGAN: Khusus untuk unduh manual jika otomatisasi di-block browser sandbox -->
-        <div id="excel-fallback-modal" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-50 hidden no-print">
-            <div class="bg-white p-6 rounded-2xl max-w-md w-full mx-4 shadow-xl border border-slate-100 text-center">
-                <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
-                </div>
-                <h3 class="font-bold text-lg text-slate-900">Unduhan Excel Ready</h3>
-                <p class="text-xs text-slate-500 mt-2 leading-relaxed">
-                    Jika unduhan Excel Anda tidak berjalan secara otomatis karena proteksi keamanan browser, silakan klik tombol hijau di bawah ini untuk mengunduhnya secara langsung:
-                </p>
-                <div class="mt-6 flex flex-col gap-2">
-                    <a id="excel-fallback-link" href="#" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition inline-block">
-                        Unduh Berkas Excel (.xlsx)
-                    </a>
-                    <button onclick="closeExcelModal()" class="w-full py-2 text-slate-500 hover:text-slate-700 text-xs font-semibold">
-                        Tutup Jendela
-                    </button>
+                    <div class="flex gap-1.5 overflow-x-auto pb-2 mb-6 scrollbar-thin" id="class-tabs"></div>
+                    <div id="dynamic-content-area"></div>
                 </div>
             </div>
         </div>
-
     </main>
 
-    <!-- PRINT PREVIEW CONTAINER (ONLY VISIBLE ON PRINT) -->
-    <div id="print-area">
-        <!-- Dynamic printable pages go here -->
-    </div>
+    <!-- PRINT PREVIEW CONTAINER -->
+    <div id="print-area"></div>
 
-    <!-- Footer -->
-    <footer class="bg-slate-900 text-slate-400 py-6 border-t border-slate-800 mt-12 no-print">
-        <div class="container mx-auto px-4 text-center text-xs">
-            <p class="font-semibold text-slate-300">SMP NEGERI 2 KEDUNGBANTENG</p>
-            <p class="mt-1">Sistem Distribusi & Layout Ruang Kelas Terautomasi © 2026. Dioptimalkan untuk Standar Pendidikan Nasional.</p>
-        </div>
-    </footer>
-
-    <!-- JS LOGIC AND ALGORITHMS -->
     <script>
-        // Global State
+        // ==========================================
+        // MODUL 1: GLOBAL STATE & UI INITIALIZATION
+        // ==========================================
         let rawStudents = [];
         let distributedClasses = [];
         let activeClassIndex = 0;
-        let viewMode = 'list'; // 'list' or 'seating'
-        let activeGradeLevel = 7; // Default: Kelas VII
-        let classConfigurations = []; // To store customized wali kelas name, NIP and class types dynamically.
-        let outStudentNisns = new Set(); // To store NIP of students who have left (dropped out)
+        let viewMode = 'list';
+        let activeGradeLevel = 7;
+        let classConfigurations = [];
+        let outStudentNisns = new Set();
 
-        // Firebase Configuration Terintegrasi Secara Permanen
         const defaultFirebaseConfig = {
             apiKey: "AIzaSyB5IcirgGz6O0yclUseCUO-S_QKSMUvtpc",
             authDomain: "smpn2-kedungbanteng-app.firebaseapp.com",
@@ -434,233 +328,85 @@
         let authUser = null;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'smpn2-kedungbanteng-app';
 
-        // DOM Elements (DEKLARASI GLOBAL - AKAN DIINSIALISASI SECARA AMAN DI WINDOW.ONLOAD)
         let dropzone, fileInput, btnDemo, btnTemplate, btnProcess, mainStateCard, resultCard, quickStats, classTabs, dynamicContentArea, toggleListView, toggleSeatingView, btnExportExcel, btnPrintAll, printArea, classSettingsList, configClassesInput;
 
-        // Toast Notification System
         function showToast(title, message, type = 'info') {
             const toastContainer = document.getElementById('toast-container');
             if (!toastContainer) return;
-            
             const toast = document.createElement('div');
-            toast.className = `flex items-start gap-3 p-4 rounded-xl shadow-lg border text-sm max-w-sm transition-all duration-300 transform translate-y-2 opacity-0`;
-            
-            let bgClass = "bg-white border-slate-100";
-            let textClass = "text-slate-800";
-            let iconMarkup = "";
-
-            if (type === 'success') {
-                bgClass = "bg-emerald-50 border-emerald-200";
-                textClass = "text-emerald-900";
-                iconMarkup = `<i data-lucide="check-circle-2" class="text-emerald-500 w-5 h-5 flex-shrink-0"></i>`;
-            } else if (type === 'error') {
-                bgClass = "bg-rose-50 border-rose-200";
-                textClass = "text-rose-900";
-                iconMarkup = `<i data-lucide="alert-triangle" class="text-rose-500 w-5 h-5 flex-shrink-0"></i>`;
-            } else {
-                bgClass = "bg-blue-50 border-blue-200";
-                textClass = "text-blue-900";
-                iconMarkup = `<i data-lucide="info" class="text-blue-500 w-5 h-5 flex-shrink-0"></i>`;
-            }
-
-            toast.className += ` ${bgClass} ${textClass}`;
-            toast.innerHTML = `
-                ${iconMarkup}
-                <div>
-                    <h4 class="font-bold">${title}</h4>
-                    <p class="text-xs opacity-90 mt-0.5">${message}</p>
-                </div>
-            `;
-
+            let bgClass = type === 'success' ? 'bg-emerald-50 text-emerald-900' : (type === 'error' ? 'bg-rose-50 text-rose-900' : 'bg-blue-50 text-blue-900');
+            toast.className = `flex items-start gap-3 p-4 rounded-xl shadow-lg border text-sm max-w-sm transition-all duration-300 transform translate-y-2 opacity-0 ${bgClass}`;
+            toast.innerHTML = `<div><h4 class="font-bold">${title}</h4><p class="text-xs mt-0.5">${message}</p></div>`;
             toastContainer.appendChild(toast);
-            lucide.createIcons({ attrs: { class: 'w-5 h-5' } });
-            
-            // Animate In
-            setTimeout(() => {
-                toast.classList.remove('translate-y-2', 'opacity-0');
-            }, 50);
-
-            // Animate Out
-            setTimeout(() => {
-                toast.classList.add('translate-y-2', 'opacity-0');
-                setTimeout(() => {
-                    toast.remove();
-                }, 300);
-            }, 4000);
+            setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 50);
+            setTimeout(() => { toast.classList.add('translate-y-2', 'opacity-0'); setTimeout(() => toast.remove(), 300); }, 4000);
         }
 
-        // Switch Active Grade Level VII, VIII, IX (Defensive Implementation)
+        // ==========================================
+        // MODUL 2: LOGIKA TINGKAT & WALIKELAS
+        // ==========================================
         function switchGrade(grade) {
             activeGradeLevel = grade;
+            [7, 8, 9].forEach(g => {
+                const btn = document.getElementById(`btn-grade-${g}`);
+                if (btn) btn.className = `px-6 py-3 text-sm transition flex items-center gap-2 ${grade === g ? 'font-extrabold border-b-2 border-blue-900 text-blue-900' : 'font-semibold border-b-2 border-transparent text-slate-600 hover:text-slate-800'}`;
+            });
             
-            // Reset Active Styles
-            const btnG7 = document.getElementById('btn-grade-7');
-            const btnG8 = document.getElementById('btn-grade-8');
-            const btnG9 = document.getElementById('btn-grade-9');
+            document.getElementById('config-card-title').innerText = `Pengaturan Kelas VII${grade === 7 ? '' : (grade === 8 ? 'I' : 'X')}`;
+            document.getElementById('wali-card-title').innerText = `Tipe Kelas & Wali Kelas VII${grade === 7 ? '' : (grade === 8 ? 'I' : 'X')}`;
             
-            if (btnG7) btnG7.className = "px-6 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-600 hover:text-slate-800 transition flex items-center gap-2";
-            if (btnG8) btnG8.className = "px-6 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-600 hover:text-slate-800 transition flex items-center gap-2";
-            if (btnG9) btnG9.className = "px-6 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-600 hover:text-slate-800 transition flex items-center gap-2";
-            
-            const activeBtn = document.getElementById(`btn-grade-${grade}`);
-            if (activeBtn) activeBtn.className = "px-6 py-3 text-sm font-extrabold border-b-2 border-blue-900 text-blue-900 transition flex items-center gap-2";
-            
-            // Update Card Titles & Visibility safely
-            const elCardTitle = document.getElementById('config-card-title');
-            const elWaliTitle = document.getElementById('wali-card-title');
-            
-            if (elCardTitle) elCardTitle.innerText = `Pengaturan Kelas VII${grade === 7 ? '' : (grade === 8 ? 'I' : 'X')}`;
-            if (elWaliTitle) elWaliTitle.innerText = `Tipe Kelas & Wali Kelas VII${grade === 7 ? '' : (grade === 8 ? 'I' : 'X')}`;
-            
-            // Toggle Grade-specific Options
-            const panelClassesMapel = document.getElementById('panel-classes-mapel-v8');
-            const panelDroppedOut = document.getElementById('panel-dropped-out');
-            const stateText = document.getElementById('main-state-text');
-            
+            const pMapel = document.getElementById('panel-classes-mapel-v8');
+            const pDropped = document.getElementById('panel-dropped-out');
             if (grade === 7) {
-                if (panelClassesMapel) panelClassesMapel.classList.add('hidden');
-                if (panelDroppedOut) panelDroppedOut.classList.add('hidden');
-                if (stateText) stateText.innerText = "Silakan unggah berkas Excel atau gunakan tombol Data Simulasi, lalu sesuaikan pemetaan Wali Kelas sebelum menekan tombol Susun & Bagi Kelas.";
+                pMapel.classList.add('hidden'); pDropped.classList.add('hidden');
             } else if (grade === 8) {
-                if (panelClassesMapel) panelClassesMapel.classList.remove('hidden');
-                if (panelDroppedOut) panelDroppedOut.classList.remove('hidden');
-                if (stateText) stateText.innerText = "Silakan gunakan data siswa Kelas VII, keluarkan siswa yang tidak naik/keluar pada panel di bawah, pilih kelompok mapel Prakarya/Seni Budaya, lalu klik Susun & Bagi Kelas.";
-            } else if (grade === 9) {
-                if (panelClassesMapel) panelClassesMapel.classList.add('hidden');
-                if (panelDroppedOut) panelDroppedOut.classList.remove('hidden');
-                if (stateText) stateText.innerText = "Sistem otomatis mengembalikan siswa ke kelas asalnya ketika kelas VII. Cukup keluarkan anak yang sudah tidak aktif/keluar pada panel kiri dan atur wali kelas baru.";
+                pMapel.classList.remove('hidden'); pDropped.classList.remove('hidden');
+            } else {
+                pMapel.classList.add('hidden'); pDropped.classList.remove('hidden');
             }
 
-            // Reload config for this specific grade level
             loadConfigFromFirestore();
             searchAndRenderOutStudents();
             
-            // Clear current view until generated
             distributedClasses = [];
             if (resultCard) resultCard.classList.add('hidden');
             if (mainStateCard) mainStateCard.classList.remove('hidden');
         }
 
-        // Initialize Firebase
-        async function initFirebase() {
-            try {
-                let configToUse = defaultFirebaseConfig;
-                if (!firebase.apps.length) {
-                    firebase.initializeApp(configToUse);
-                }
-                db = firebase.firestore();
-                const auth = firebase.auth();
-
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    const userCredential = await auth.signInWithCustomToken(__initial_auth_token);
-                    authUser = userCredential.user;
-                } else {
-                    const userCredential = await auth.signInAnonymously();
-                    authUser = userCredential.user;
-                }
-
-                if (authUser) {
-                    isFirebaseActive = true;
-                    const statusDiv = document.getElementById('firebase-status');
-                    if (statusDiv) {
-                        statusDiv.className = "flex items-center gap-1.5 text-xs bg-emerald-950/40 text-emerald-300 px-3 py-1.5 rounded-full border border-emerald-800 shadow-sm";
-                        statusDiv.innerHTML = `
-                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span>Cloud Terhubung (Online)</span>
-                        `;
-                    }
-                    const elLoadCloud = document.getElementById('btn-load-cloud');
-                    if (elLoadCloud) elLoadCloud.classList.remove('hidden');
-
-                    await loadConfigFromFirestore();
-                    await loadResultFromFirestore(false);
-                }
-            } catch (err) {
-                console.warn("Firebase gagal terhubung. Menggunakan penyimpanan lokal/memori.", err);
+        function toProperCase(str) {
+            if (!str) return '';
+            let parts = String(str).replace(/\s+/g, ' ').trim().split(',');
+            let namePart = parts[0].split(' ').map(word => {
+                const upper = word.toUpperCase();
+                if (['SD', 'SDN', 'MI', 'MIM', 'MIN', 'SMP', 'SMA'].includes(upper)) return upper;
+                return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+            }).join(' ');
+            parts[0] = namePart;
+            for (let i = 1; i < parts.length; i++) {
+                let degree = parts[i].trim();
+                let lower = degree.toLowerCase().replace(/\./g, '');
+                const degreeMap = { 'spd': 'S.Pd.', 'mpd': 'M.Pd.', 'skom': 'S.Kom.', 'mkom': 'M.Kom.' };
+                parts[i] = ' ' + (degreeMap[lower] || degree.charAt(0).toUpperCase() + degree.slice(1));
             }
+            return parts.join(',');
         }
 
-        // Search & Render students for drop-out status
-        function searchAndRenderOutStudents() {
-            const container = document.getElementById('dropped-search-results');
-            if (!container) return;
-            
-            const searchVal = document.getElementById('search-students-out').value.trim().toLowerCase();
-            
-            if (rawStudents.length === 0) {
-                container.innerHTML = `<p class="text-slate-400 text-center text-xs py-4">Belum ada data pendaftar. Unggah data atau klik Demo Data dulu.</p>`;
-                return;
-            }
-
-            if (!searchVal) {
-                container.innerHTML = `<p class="text-slate-400 text-center text-xs py-4">Ketik nama untuk mencari siswa.</p>`;
-                return;
-            }
-
-            const filtered = rawStudents.filter(s => s.namaSiswa.toLowerCase().includes(searchVal));
-            if (filtered.length === 0) {
-                container.innerHTML = `<p class="text-slate-400 text-xs py-2">Tidak ditemukan siswa bernama "${searchVal}".</p>`;
-                return;
-            }
-
-            container.innerHTML = '';
-            filtered.forEach(s => {
-                const isOutStudent = outStudentNisns.has(s.nisn);
-                const row = document.createElement('div');
-                row.className = "p-2 hover:bg-slate-50 flex items-center justify-between transition text-xs";
-                row.innerHTML = `
-                    <div class="flex flex-col">
-                        <span class="font-bold text-slate-800">${s.namaSiswa}</span>
-                        <span class="text-[10px] text-slate-400">NISN: ${s.nisn}</span>
-                    </div>
-                    <button onclick="toggleStudentOutStatus('${s.nisn}')" class="px-2 py-1 rounded text-[10px] font-extrabold transition ${
-                        isOutStudent ? 'bg-rose-100 text-rose-800 hover:bg-rose-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                    }">
-                        ${isOutStudent ? 'Siswa Keluar 🔴' : 'Aktif 🟢'}
-                    </button>
-                `;
-                container.appendChild(row);
-            });
-        }
-
-        function toggleStudentOutStatus(nisn) {
-            if (outStudentNisns.has(nisn)) {
-                outStudentNisns.delete(nisn);
-                showToast("Siswa Aktif Kembali", "Siswa akan dimasukkan kembali ke pool pembagian kelas.", "success");
-            } else {
-                outStudentNisns.add(nisn);
-                showToast("Siswa Dikeluarkan", "Siswa tidak akan ikut dalam penyusunan kelas.", "info");
-            }
-            const elBadge = document.getElementById('dropped-count-badge');
-            if (elBadge) elBadge.innerText = `${outStudentNisns.size} Keluar`;
-            searchAndRenderOutStudents();
-            triggerAutosave();
-        }
-
-        // Initialize Dynamic Class Configurations
         function initClassConfigurations() {
             if (!configClassesInput) return;
             const classCount = parseInt(configClassesInput.value) || 7;
             const currentConfigs = [...classConfigurations];
             classConfigurations = [];
-
             classSettingsList.innerHTML = '';
 
             for (let i = 0; i < classCount; i++) {
-                const letter = String.fromCharCode(65 + i); // A, B, C, etc.
+                const letter = String.fromCharCode(65 + i);
                 const existing = currentConfigs.find(c => c.letter === letter);
-
-                let defaultType = 'reguler';
-                if (i === 6) defaultType = 'prestasi';
-                else if (i < 2) defaultType = 'akademik';
-
                 const configObj = {
                     letter: letter,
-                    type: existing ? existing.type : defaultType,
+                    type: existing ? existing.type : (i === 6 ? 'prestasi' : (i < 2 ? 'akademik' : 'reguler')),
                     waliKelas: existing ? existing.waliKelas : `Wali Kelas VII${activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X')} ${letter}`,
                     nip: existing ? existing.nip : ''
                 };
-
                 classConfigurations.push(configObj);
 
                 const row = document.createElement('div');
@@ -670,73 +416,32 @@
                         <span class="text-xs font-extrabold text-blue-900">KELAS VII${activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X')} ${letter}</span>
                         <select data-letter="${letter}" class="class-type-select px-2 py-1 text-[11px] bg-white border border-slate-200 rounded font-bold text-slate-700">
                             <option value="reguler" ${configObj.type === 'reguler' ? 'selected' : ''}>Reguler</option>
-                            <option value="akademik" ${configObj.type === 'akademik' ? 'selected' : ''}>Akademik (Unggulan)</option>
-                            <option value="prestasi" ${configObj.type === 'prestasi' ? 'selected' : ''}>Prestasi (Sertifikat)</option>
+                            <option value="akademik" ${configObj.type === 'akademik' ? 'selected' : ''}>Akademik</option>
+                            <option value="prestasi" ${configObj.type === 'prestasi' ? 'selected' : ''}>Prestasi</option>
                         </select>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
-                        <input type="text" placeholder="Nama Wali Kelas" data-letter="${letter}" class="class-wali-input px-2 py-1 text-xs border border-slate-200 bg-white rounded" value="${configObj.waliKelas}">
-                        <input type="text" placeholder="NIP Wali Kelas" data-letter="${letter}" class="class-nip-input px-2 py-1 text-xs border border-slate-200 bg-white rounded" value="${configObj.nip}">
+                        <input type="text" data-letter="${letter}" class="class-wali-input px-2 py-1 text-xs border border-slate-200 bg-white rounded" value="${configObj.waliKelas}">
+                        <input type="text" data-letter="${letter}" class="class-nip-input px-2 py-1 text-xs border border-slate-200 bg-white rounded" value="${configObj.nip}">
                     </div>
                 `;
                 classSettingsList.appendChild(row);
             }
 
-            // Bind update listeners safely
-            document.querySelectorAll('.class-type-select').forEach(el => {
+            document.querySelectorAll('.class-type-select, .class-wali-input, .class-nip-input').forEach(el => {
                 el.addEventListener('change', (e) => {
                     const letter = e.target.getAttribute('data-letter');
                     const conf = classConfigurations.find(c => c.letter === letter);
                     if (conf) {
-                        conf.type = e.target.value;
+                        if(el.classList.contains('class-type-select')) conf.type = e.target.value;
+                        if(el.classList.contains('class-wali-input')) { conf.waliKelas = toProperCase(e.target.value); e.target.value = conf.waliKelas; }
+                        if(el.classList.contains('class-nip-input')) conf.nip = e.target.value;
+                        
                         const dClass = distributedClasses.find(cl => cl.letter === letter);
                         if (dClass) {
-                            dClass.type = conf.type;
-                            renderClassContent();
-                        }
-                        triggerAutosave();
-                    }
-                });
-            });
-            document.querySelectorAll('.class-wali-input').forEach(el => {
-                el.addEventListener('input', (e) => {
-                    const letter = e.target.getAttribute('data-letter');
-                    const conf = classConfigurations.find(c => c.letter === letter);
-                    if (conf) {
-                        conf.waliKelas = e.target.value;
-                        const dClass = distributedClasses.find(cl => cl.letter === letter);
-                        if (dClass) {
-                            dClass.waliKelas = e.target.value;
-                            renderClassContent();
-                        }
-                        triggerAutosave();
-                    }
-                });
-                
-                el.addEventListener('blur', (e) => {
-                    const letter = e.target.getAttribute('data-letter');
-                    const conf = classConfigurations.find(c => c.letter === letter);
-                    if (conf) {
-                        conf.waliKelas = toProperCase(e.target.value);
-                        e.target.value = conf.waliKelas;
-                        const dClass = distributedClasses.find(cl => cl.letter === letter);
-                        if (dClass) {
-                            dClass.waliKelas = conf.waliKelas;
-                            renderClassContent();
-                        }
-                        triggerAutosave();
-                    }
-                });
-            });
-            document.querySelectorAll('.class-nip-input').forEach(el => {
-                el.addEventListener('input', (e) => {
-                    const letter = e.target.getAttribute('data-letter');
-                    const conf = classConfigurations.find(c => c.letter === letter);
-                    if (conf) {
-                        conf.nip = e.target.value;
-                        const dClass = distributedClasses.find(cl => cl.letter === letter);
-                        if (dClass) {
-                            dClass.nip = conf.nip;
+                            if(el.classList.contains('class-type-select')) dClass.type = conf.type;
+                            if(el.classList.contains('class-wali-input')) dClass.waliKelas = conf.waliKelas;
+                            if(el.classList.contains('class-nip-input')) dClass.nip = conf.nip;
                             renderClassContent();
                         }
                         triggerAutosave();
@@ -745,1107 +450,129 @@
             });
         }
 
-        // CLOUD FUNCTIONS: Simpan & Muat Config dengan Firestore (Realtime Autosave)
+        // ==========================================
+        // MODUL 3: FIREBASE CLOUD SYNC
+        // ==========================================
+        let saveTimeout = null;
+        function triggerAutosave() {
+            if (!isFirebaseActive || !authUser) return;
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                try {
+                    const docData = {
+                        tahunAjaran: document.getElementById('config-ta').value,
+                        tanggalDokumen: document.getElementById('config-date').value,
+                        targetKapasitas: document.getElementById('config-capacity').value,
+                        jumlahKelas: document.getElementById('config-classes').value,
+                        kepsekNama: document.getElementById('config-kepsek-name').value,
+                        kepsekNip: document.getElementById('config-kepsek-nip').value,
+                        classConfigurations: classConfigurations,
+                        outStudentNisns: Array.from(outStudentNisns),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('configurations').doc(`main_config_grade_${activeGradeLevel}`).set(docData);
+                } catch (err) { console.error(err); }
+            }, 800);
+        }
+
         async function loadConfigFromFirestore() {
             if (!isFirebaseActive || !authUser) return;
-
             try {
-                const docRef = db.collection('artifacts')
-                    .doc(appId)
-                    .collection('public')
-                    .doc('data')
-                    .collection('configurations')
-                    .doc(`main_config_grade_${activeGradeLevel}`);
-                
-                let doc = await docRef.get();
-
-                // FALLBACK MIGRATION FOR CLASS VII (Jika data lama Anda di path lama belum termigrasi)
-                if (!doc.exists && activeGradeLevel === 7) {
-                    const oldDocRef = db.collection('artifacts')
-                        .doc(appId)
-                        .collection('public')
-                        .doc('data');
-                    const oldDoc = await oldDocRef.get();
-                    if (oldDoc.exists) {
-                        doc = oldDoc; // Gunakan data dari path lama
-                        showToast("Pemulihan Cloud", "Data lama berhasil ditemukan dan dipulihkan secara otomatis.", "info");
-                        setTimeout(() => triggerAutosave(), 1000); // Otomatis simpan ke path baru
-                    }
-                }
-
+                let doc = await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('configurations').doc(`main_config_grade_${activeGradeLevel}`).get();
                 if (doc.exists) {
                     const data = doc.data();
-                    
                     document.getElementById('config-ta').value = data.tahunAjaran || '2026/2027';
                     document.getElementById('config-date').value = data.tanggalDokumen || 'Kedungbanteng, 26 Juni 2026';
                     document.getElementById('config-capacity').value = data.targetKapasitas || '32';
                     document.getElementById('config-classes').value = data.jumlahKelas || '7';
                     document.getElementById('config-kepsek-name').value = data.kepsekNama || 'Kepala Sekolah';
                     document.getElementById('config-kepsek-nip').value = data.kepsekNip || 'NIP Kepala Sekolah';
-
-                    if (data.classConfigurations && data.classConfigurations.length > 0) {
-                        classConfigurations = data.classConfigurations;
-                    }
-                    if (data.outStudentNisns) {
-                        outStudentNisns = new Set(data.outStudentNisns);
-                        const elBadge = document.getElementById('dropped-count-badge');
-                        if (elBadge) elBadge.innerText = `${outStudentNisns.size} Keluar`;
-                    } else {
-                        outStudentNisns = new Set();
-                        const elBadge = document.getElementById('dropped-count-badge');
-                        if (elBadge) elBadge.innerText = `0 Keluar`;
-                    }
-
-                    // Muat ulang UI setelan kelas agar sinkron dengan data cloud
+                    if (data.classConfigurations) classConfigurations = data.classConfigurations;
+                    if (data.outStudentNisns) outStudentNisns = new Set(data.outStudentNisns);
                     initClassConfigurations();
-                    showToast("Sinkronisasi Sukses", "Konfigurasi tingkat kelas berhasil dimuat.", "success");
                 } else {
-                    // Reset to defaults if config for this grade doesn't exist yet
                     initClassConfigurations();
                 }
-            } catch (err) {
-                console.error("Gagal membaca konfigurasi cloud", err);
-            }
+            } catch (err) { console.error(err); }
         }
 
-        // CLOUD FUNCTIONS: Simpan & Muat Hasil Pembagian Kelas (Data Hasil Generasi)
         async function saveResultToFirestore() {
             if (!isFirebaseActive || !authUser || distributedClasses.length === 0) return;
-
-            const indicator = document.getElementById('autosave-indicator');
-            if (indicator) {
-                indicator.classList.remove('hidden');
-                indicator.innerHTML = `<i data-lucide="refresh-cw" class="w-3 h-3 text-blue-500 animate-spin"></i> Menyimpan hasil...`;
-                lucide.createIcons();
-            }
-
             try {
                 const dataToSave = {
-                    distributedClasses: distributedClasses.map(c => ({
-                        id: c.id,
-                        letter: c.letter,
-                        name: c.name,
-                        type: c.type,
-                        waliKelas: c.waliKelas,
-                        nip: c.nip,
-                        capacity: c.capacity,
-                        targetBoys: c.targetBoys,
-                        targetGirls: c.targetGirls,
-                        students: c.students
-                    })),
+                    distributedClasses: distributedClasses.map(c => ({ id: c.id, letter: c.letter, name: c.name, type: c.type, waliKelas: c.waliKelas, nip: c.nip, capacity: c.capacity, targetBoys: c.targetBoys, targetGirls: c.targetGirls, students: c.students })),
                     rawStudents: rawStudents,
                     savedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
-
-                await db.collection('artifacts')
-                    .doc(appId)
-                    .collection('public')
-                    .doc('data')
-                    .collection('results')
-                    .doc(`latest_distribution_grade_${activeGradeLevel}`)
-                    .set(dataToSave);
-
-                if (indicator) {
-                    indicator.innerHTML = `<i data-lucide="cloud-lightning" class="w-3 h-3 text-emerald-500"></i> Hasil Tersimpan`;
-                    lucide.createIcons();
-                }
-                showToast("Hasil Tersimpan", "Seluruh hasil pembagian kelas baru berhasil disimpan.", "success");
-            } catch (err) {
-                console.error("Gagal mengunggah hasil pembagian:", err);
-                showToast("Gagal Menyimpan Hasil", "Terjadi kesalahan saat menyinkronkan hasil pembagian.", "error");
-            }
+                await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('results').doc(`latest_distribution_grade_${activeGradeLevel}`).set(dataToSave);
+            } catch (err) { console.error(err); }
         }
 
         async function loadResultFromFirestore(explicit = false) {
-            if (!isFirebaseActive || !authUser) {
-                if (explicit) showToast("Database Offline", "Firebase belum aktif atau belum dikonfigurasi.", "error");
-                return;
-            }
-
+            if (!isFirebaseActive || !authUser) return;
             try {
-                const docRef = db.collection('artifacts')
-                    .doc(appId)
-                    .collection('public')
-                    .doc('data')
-                    .collection('results')
-                    .doc(`latest_distribution_grade_${activeGradeLevel}`);
-                
-                const doc = await docRef.get();
+                const doc = await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('results').doc(`latest_distribution_grade_${activeGradeLevel}`).get();
                 if (doc.exists) {
                     const data = doc.data();
-                    
-                    if (data.rawStudents && data.rawStudents.length > 0) {
-                        rawStudents = data.rawStudents;
-                    }
-
-                    if (data.distributedClasses && data.distributedClasses.length > 0) {
-                        distributedClasses = data.distributedClasses.map(c => {
-                            return {
-                                ...c,
-                                seating: arrangeSeating(c.students || [])
-                            };
-                        });
-
+                    if (data.rawStudents) rawStudents = data.rawStudents;
+                    if (data.distributedClasses) {
+                        distributedClasses = data.distributedClasses.map(c => ({ ...c, seating: arrangeSeating(c.students || []) }));
                         activeClassIndex = 0;
-                        
-                        renderStatsPanel();
-                        renderClassTabs();
-                        renderClassContent();
-
+                        renderStatsPanel(); renderClassTabs(); renderClassContent();
                         if (mainStateCard) mainStateCard.classList.add('hidden');
                         if (resultCard) resultCard.classList.remove('hidden');
                         if (quickStats) quickStats.classList.remove('hidden');
-
-                        if (explicit) {
-                            showToast("Hasil Cloud Dimuat", `Berhasil memulihkan struktur ${distributedClasses.length} kelas secara realtime.`, "success");
-                        }
+                        if (explicit) showToast("Dimuat", "Data dipulihkan dari Cloud.", "success");
                     }
-                } else {
-                    if (explicit) showToast("Cloud Kosong", "Belum ada riwayat hasil pembagian kelas tersimpan.", "info");
                 }
-            } catch (err) {
-                console.error("Gagal memuat riwayat pembagian dari cloud:", err);
-            }
+            } catch (err) { console.error(err); }
         }
 
-        // Smart Class-Distribution Core Algorithm
-        function processAndDistribute() {
-            if (rawStudents.length === 0) return;
-
-            const capacityPerClass = parseInt(document.getElementById('config-capacity').value);
-            const classCountInput = parseInt(document.getElementById('config-classes').value);
-
-            // Exclude Dropped-out students
-            let pool = rawStudents.filter(s => !outStudentNisns.has(s.nisn)).map(s => ({
-                ...s,
-                normalizedSchool: normalizeSchool(s.namaSekolah)
-            }));
-
-            const totalStudents = pool.length;
-            const classCount = Math.max(classCountInput, Math.ceil(totalStudents / capacityPerClass));
-
-            if (classCount > classCountInput) {
-                showToast("Penyesuaian Kelas", `Jumlah kelas disesuaikan menjadi ${classCount} agar dapat menampung ${totalStudents} siswa secara adil.`, "info");
-                document.getElementById('config-classes').value = classCount;
-                initClassConfigurations();
-            }
-
-            let classes = [];
-            classConfigurations.forEach((conf) => {
-                classes.push({
-                    id: conf.letter,
-                    letter: conf.letter,
-                    name: `${activeGradeLevel === 7 ? 'VII' : (activeGradeLevel === 8 ? 'VIII' : 'IX')} ${conf.letter}`,
-                    type: conf.type,
-                    waliKelas: conf.waliKelas,
-                    nip: conf.nip,
-                    students: [],
-                    capacity: capacityPerClass,
-                    targetBoys: 0,
-                    targetGirls: 0
-                });
-            });
-
-            // GENDER & PAIR TARGET CALCULATION
-            const totalL = pool.filter(s => s.jenisKelamin === 'L').length;
-            const totalP = pool.filter(s => s.jenisKelamin === 'P').length;
-
-            let remainingL = totalL;
-            let remainingP = totalP;
-
-            classes.forEach((c, idx) => {
-                if (idx < classCount - 1) {
-                    const ratioL = remainingL / (remainingL + remainingP || 1);
-                    let idealB = ratioL * c.capacity;
-                    let targetB = 2 * Math.round(idealB / 2);
-
-                    if (targetB > remainingL) {
-                        targetB = 2 * Math.floor(remainingL / 2);
-                    }
-                    if (c.capacity - targetB > remainingP) {
-                        const neededP = c.capacity - targetB;
-                        const diff = neededP - remainingP;
-                        targetB += 2 * Math.ceil(diff / 2);
-                    }
-
-                    targetB = Math.max(0, Math.min(c.capacity, targetB));
-                    let targetG = c.capacity - targetB;
-
-                    c.targetBoys = targetB;
-                    c.targetGirls = targetG;
-
-                    remainingL -= targetB;
-                    remainingP -= targetG;
-                } else {
-                    c.targetBoys = remainingL;
-                    c.targetGirls = remainingP;
-                }
-            });
-
-            if (activeGradeLevel === 7) {
-                // ==================== KELAS VII DISTRIBUTION ====================
-                let prestasiBoys = pool.filter(s => s.prestasi === 'Sertifikat' && s.jenisKelamin === 'L');
-                let prestasiGirls = pool.filter(s => s.prestasi === 'Sertifikat' && s.jenisKelamin === 'P');
-                
-                let mainBoys = pool.filter(s => s.prestasi !== 'Sertifikat' && s.jenisKelamin === 'L');
-                let mainGirls = pool.filter(s => s.prestasi !== 'Sertifikat' && s.jenisKelamin === 'P');
-
-                // 1. Prestasi Fill
-                classes.forEach(c => {
-                    if (c.type === 'prestasi') {
-                        const boysToTake = Math.min(c.targetBoys, prestasiBoys.length);
-                        const takenBoys = prestasiBoys.splice(0, boysToTake);
-                        c.students.push(...takenBoys);
-
-                        const girlsToTake = Math.min(c.targetGirls, prestasiGirls.length);
-                        const takenGirls = prestasiGirls.splice(0, girlsToTake);
-                        c.students.push(...takenGirls);
-                    }
-                });
-
-                mainBoys = [...mainBoys, ...prestasiBoys];
-                mainGirls = [...mainGirls, ...prestasiGirls];
-
-                mainBoys.sort((a, b) => b.skorNilai - a.skorNilai);
-                mainGirls.sort((a, b) => b.skorNilai - a.skorNilai);
-
-                // 2. Academic Fill
-                classes.forEach(c => {
-                    if (c.type === 'akademik') {
-                        const curBoys = c.students.filter(s => s.jenisKelamin === 'L').length;
-                        const curGirls = c.students.filter(s => s.jenisKelamin === 'P').length;
-
-                        const boysNeeded = c.targetBoys - curBoys;
-                        const girlsNeeded = c.targetGirls - curGirls;
-
-                        if (boysNeeded > 0) {
-                            const takenBoys = mainBoys.splice(0, boysNeeded);
-                            c.students.push(...takenBoys);
-                        }
-                        if (girlsNeeded > 0) {
-                            const takenGirls = mainGirls.splice(0, girlsNeeded);
-                            c.students.push(...takenGirls);
-                        }
-                    }
-                });
-
-                // 3. Regular school origin cohorts fill
-                const getSchoolGroups = (genderPool) => {
-                    const groups = {};
-                    genderPool.forEach(student => {
-                        if (!groups[student.normalizedSchool]) {
-                            groups[student.normalizedSchool] = [];
-                        }
-                        groups[student.normalizedSchool].push(student);
-                    });
-                    return groups;
-                };
-
-                let boyGroups = getSchoolGroups(mainBoys);
-                let girlGroups = getSchoolGroups(mainGirls);
-
-                const distributeGenderGroups = (groups, isBoys) => {
-                    let sortedSchools = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length);
-
-                    sortedSchools.forEach(school => {
-                        let students = groups[school];
-
-                        while (students.length > 0) {
-                            let eligibleClasses = classes.filter(c => {
-                                const currentOfGender = c.students.filter(s => s.jenisKelamin === (isBoys ? 'L' : 'P')).length;
-                                const targetOfGender = isBoys ? c.targetBoys : c.targetGirls;
-                                return currentOfGender < targetOfGender;
-                            }).sort((a, b) => {
-                                const currentA = a.students.filter(s => s.jenisKelamin === (isBoys ? 'L' : 'P')).length;
-                                const currentB = b.students.filter(s => s.jenisKelamin === (isBoys ? 'L' : 'P')).length;
-                                return currentA - currentB;
-                            });
-
-                            let bestClass = eligibleClasses[0];
-                            if (!bestClass) break;
-
-                            const targetOfGender = isBoys ? bestClass.targetBoys : bestClass.targetGirls;
-                            const currentOfGender = bestClass.students.filter(s => s.jenisKelamin === (isBoys ? 'L' : 'P')).length;
-                            const spaceLeft = targetOfGender - currentOfGender;
-
-                            const takeCount = Math.min(students.length >= 2 ? 2 : 1, spaceLeft);
-                            const batch = students.splice(0, takeCount);
-
-                            bestClass.students.push(...batch);
-                        }
-                    });
-                };
-
-                distributeGenderGroups(boyGroups, true);
-                distributeGenderGroups(girlGroups, false);
-
-            } else {
-                // --- KELAS VIII & IX SMART RE-DISTRIBUTION / COHORT MAPEL RESTORATION ---
-                // For Grade 8: prakarya vs seni budaya grouping.
-                const configPrakaryaClasses = document.getElementById('config-prakarya-classes');
-                const prakaryaLettersInput = configPrakaryaClasses ? configPrakaryaClasses.value.trim().toUpperCase().split(',').map(s => s.trim()) : ['A', 'B', 'C'];
-                const prakaryaLetters = new Set(prakaryaLettersInput.length > 0 ? prakaryaLettersInput : ['A', 'B', 'C']);
-
-                // Identify previous VII grade from dataset
-                pool.forEach(student => {
-                    if (!student.kelasAsal) {
-                        student.kelasAsal = 'A'; // Fallback
-                    }
-                });
-
-                // Separate pool into Prakarya and Seni Budaya groups based on their original kelas VII letter
-                let prakaryaPool = pool.filter(s => {
-                    const originLetter = String(s.kelasAsal).replace(/[^A-Z]/gi, '').toUpperCase();
-                    return prakaryaLetters.has(originLetter);
-                });
-                let seniBudayaPool = pool.filter(s => {
-                    const originLetter = String(s.kelasAsal).replace(/[^A-Z]/gi, '').toUpperCase();
-                    return !prakaryaLetters.has(originLetter);
-                });
-
-                // Distribute into respective Kelas VIII
-                const distributeSubPool = (subPool, targetClasses) => {
-                    let subBoys = subPool.filter(s => s.jenisKelamin === 'L');
-                    let subGirls = subPool.filter(s => s.jenisKelamin === 'P');
-
-                    subBoys.forEach(s => {
-                        let best = targetClasses.filter(c => c.students.filter(st => st.jenisKelamin === 'L').length < c.targetBoys)[0];
-                        if (best) best.students.push(s);
-                    });
-
-                    subGirls.forEach(s => {
-                        let best = targetClasses.filter(c => c.students.filter(st => st.jenisKelamin === 'P').length < c.targetGirls)[0];
-                        if (best) best.students.push(s);
-                    });
-                };
-
-                if (activeGradeLevel === 8) {
-                    // Class VIII A-C = Prakarya target, VIII D-G = Seni Budaya
-                    const prakaryaClasses = classes.filter(c => prakaryaLetters.has(c.letter));
-                    const seniBudayaClasses = classes.filter(c => !prakaryaLetters.has(c.letter));
-
-                    distributeSubPool(prakaryaPool, prakaryaClasses.length > 0 ? prakaryaClasses : classes.slice(0, 3));
-                    distributeSubPool(seniBudayaPool, seniBudayaClasses.length > 0 ? seniBudayaClasses : classes.slice(3));
-                } else {
-                    // --- KELAS IX RESTORATION (100% same as VII but removing out students) ---
-                    classes.forEach(c => {
-                        // Gather VII students of this letter
-                        let matchingVII = pool.filter(s => {
-                            const originLetter = String(s.kelasAsal).replace(/[^A-Z]/gi, '').toUpperCase();
-                            return originLetter === c.letter;
-                        });
-                        c.students = matchingVII;
-                    });
-                }
-            }
-
-            // Safety cleanup fallback for any leftovers due to unexpected fractions
-            let allAssignedIds = new Set();
-            classes.forEach(c => c.students.forEach(s => {
-                if (s) allAssignedIds.add(s.nisn);
-            }));
-
-            let safetyLeftovers = pool.filter(s => !allAssignedIds.has(s.nisn));
-            if (safetyLeftovers.length > 0) {
-                safetyLeftovers.forEach(s => {
-                    let bestClass = classes.filter(c => c.students.length < c.capacity)
-                        .sort((a, b) => a.students.length - b.students.length)[0];
-                    if (bestClass) {
-                        bestClass.students.push(s);
-                    }
-                });
-            }
-
-            // Post-process: Sort alphabetically and arrange seating
-            classes.forEach(c => {
-                c.students = c.students.filter(Boolean); // Filter nulls
-                c.students.sort((a, b) => a.namaSiswa.localeCompare(b.namaSiswa));
-                c.seating = arrangeSeating(c.students || []);
-            });
-
-            distributedClasses = classes;
-            activeClassIndex = 0;
-
-            renderStatsPanel();
-            renderClassTabs();
-            renderClassContent();
-
-            if (mainStateCard) mainStateCard.classList.add('hidden');
-            if (resultCard) resultCard.classList.remove('hidden');
-            if (quickStats) quickStats.classList.remove('hidden');
-
-            showToast("Pembagian Selesai", `Siswa Kelas ${activeGradeLevel === 7 ? 'VII' : (activeGradeLevel === 8 ? 'VIII' : 'IX')} berhasil disusun secara proporsional.`, "success");
-
-            // Otomatis mengunggah dan mengamankan data hasil pembagian di cloud Firebase
-            saveResultToFirestore();
-        }
-
-        // Seating Arrangement Generator (Pairing L-L, P-P)
-        function arrangeSeating(students) {
-            const boys = students.filter(s => s.jenisKelamin === 'L');
-            const girls = students.filter(s => s.jenisKelamin === 'P');
-
-            let pairs = [];
-
-            while (boys.length >= 2) {
-                pairs.push([boys.shift(), boys.shift()]);
-            }
-            while (girls.length >= 2) {
-                pairs.push([girls.shift(), girls.shift()]);
-            }
-
-            if (boys.length > 0 && girls.length > 0) {
-                pairs.push([boys.shift(), girls.shift()]); 
-            } else if (boys.length > 0) {
-                pairs.push([boys.shift(), null]); 
-            } else if (girls.length > 0) {
-                pairs.push([girls.shift(), null]); 
-            }
-
-            return pairs;
-        }
-
-        // Render Stats Panel
-        function renderStatsPanel() {
-            const total = rawStudents.length;
-            const boys = rawStudents.filter(s => s.jenisKelamin === 'L').length;
-            const girls = rawStudents.filter(s => s.jenisKelamin === 'P').length;
-            const prestasi = rawStudents.filter(s => s.prestasi === 'Sertifikat').length;
-
-            document.getElementById('stat-total-students').innerText = total;
-            document.getElementById('stat-boys').innerText = boys;
-            document.getElementById('stat-girls').innerText = girls;
-            document.getElementById('stat-prestasi').innerText = prestasi;
-        }
-
-        // Render Class Letter Tabs
-        function renderClassTabs() {
-            if (!classTabs) return;
-            classTabs.innerHTML = '';
-            distributedClasses.forEach((c, idx) => {
-                const btn = document.createElement('button');
-                btn.className = `px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-150 flex items-center gap-1.5 border ${
-                    idx === activeClassIndex 
-                    ? 'bg-blue-900 text-white border-blue-900 shadow-sm' 
-                    : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-                }`;
-
-                let badgeColor = "bg-slate-200 text-slate-700";
-                let badgeLabel = "REG";
-                if (c.type === 'akademik') {
-                    badgeColor = "bg-amber-100 text-amber-800 border-amber-200";
-                    badgeLabel = "AKAD";
-                } else if (c.type === 'prestasi') {
-                    badgeColor = "bg-indigo-100 text-indigo-800 border-indigo-200";
-                    badgeLabel = "PRES";
-                }
-
-                btn.innerHTML = `
-                    <span>Kelas VII${activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X')} ${c.letter}</span>
-                    <span class="text-[9px] px-1 py-0.5 rounded font-extrabold border ${badgeColor}">${badgeLabel}</span>
-                    <span class="text-[10px] opacity-70">(${c.students ? c.students.length : 0})</span>
-                `;
-
-                btn.addEventListener('click', () => {
-                    activeClassIndex = idx;
-                    renderClassTabs();
-                    renderClassContent();
-                });
-
-                classTabs.appendChild(btn);
-            });
-        }
-
-        // View Mode selection
-        function setViewMode(mode) {
-            viewMode = mode;
-            if (mode === 'list') {
-                if (toggleListView) toggleListView.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-800 shadow-sm transition flex items-center gap-1.5";
-                if (toggleSeatingView) toggleSeatingView.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-800 transition flex items-center gap-1.5";
-            } else {
-                if (toggleListView) toggleListView.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-800 transition flex items-center gap-1.5";
-                if (toggleSeatingView) toggleSeatingView.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-800 shadow-sm transition flex items-center gap-1.5";
-            }
-            renderClassContent();
-        }
-
-        // Render Class Details
-        function renderClassContent() {
-            const activeClass = distributedClasses[activeClassIndex];
-            if (!activeClass) return;
-
-            const currentStudents = activeClass.students || [];
-            const currentSeating = activeClass.seating || [];
-
-            const boysCount = currentStudents.filter(s => s.jenisKelamin === 'L').length;
-            const girlsCount = currentStudents.filter(s => s.jenisKelamin === 'P').length;
-            const avgScore = (currentStudents.reduce((acc, s) => acc + s.skorNilai, 0) / currentStudents.length || 0).toFixed(1);
-
-            let html = '';
-
-            html += `
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm">
-                    <div>
-                        <span class="text-xs text-slate-500 block">Total Siswa</span>
-                        <span class="font-extrabold text-slate-800 text-base">${currentStudents.length} Siswa</span>
-                    </div>
-                    <div>
-                        <span class="text-xs text-slate-500 block">Komposisi Gender</span>
-                        <span class="font-bold text-slate-700 text-sm">${boysCount} L / ${girlsCount} P</span>
-                    </div>
-                    <div>
-                        <span class="text-xs text-slate-500 block">Rata-rata Nilai</span>
-                        <span class="font-bold text-amber-600 text-sm flex items-center gap-1">
-                            <i data-lucide="star" class="w-3.5 h-3.5 fill-amber-500 text-amber-500"></i> ${avgScore}
-                        </span>
-                    </div>
-                    <div>
-                        <span class="text-xs text-slate-500 block">Wali Kelas</span>
-                        <span class="font-bold text-blue-800 text-sm truncate block" title="${activeClass.waliKelas || ''}">${activeClass.waliKelas || '-'}</span>
-                    </div>
-                </div>
-            `;
-
-            if (viewMode === 'list') {
-                html += `
-                    <div class="overflow-x-auto rounded-xl border border-slate-100">
-                        <!-- Kolom disesuaikan lebar persentasenya sesuai request di web view agar seragam -->
-                        <table class="w-full text-xs text-left table-fixed">
-                            <thead class="bg-slate-100 text-slate-700 text-[10px] uppercase font-extrabold">
-                                <tr>
-                                    <th class="px-4 py-3 text-center w-[5%]">NO</th>
-                                    <th class="px-4 py-3 w-[10%]">NISN</th>
-                                    <th class="px-4 py-3 w-[38%]">NAMA SISWA</th>
-                                    <th class="px-4 py-3 text-center w-[5%]">JK</th>
-                                    <th class="px-4 py-3 w-[42%]">ASAL SEKOLAH</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 text-slate-700">
-                `;
-
-                currentStudents.forEach((s, idx) => {
-                    const bgRow = idx % 2 === 0 ? "bg-white" : "bg-slate-50/50";
-
-                    html += `
-                        <tr class="${bgRow} hover:bg-slate-50 transition-colors">
-                            <td class="px-4 py-2 font-bold text-slate-400 text-center">${idx + 1}</td>
-                            <td class="px-4 py-2 font-mono font-semibold text-slate-600">${s.nisn}</td>
-                            <td class="px-4 py-2 font-bold text-slate-900 truncate" title="${s.namaSiswa}">${s.namaSiswa}</td>
-                            <td class="px-4 py-2 text-center">
-                                <span class="px-2 py-0.5 rounded text-[10px] font-extrabold ${s.jenisKelamin === 'L' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'}">
-                                    ${s.jenisKelamin}
-                                </span>
-                            </td>
-                            <td class="px-4 py-2 text-slate-600 font-medium truncate" title="${s.namaSekolah}">${s.namaSekolah}</td>
-                        </tr>
-                    `;
-                });
-
-                html += `
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-            } else {
-                html += `
-                    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-inner">
-                        <div class="w-full bg-slate-800 text-slate-400 text-center py-2 rounded-xl font-bold border border-slate-700 mb-8 shadow relative flex items-center justify-center gap-2 text-xs">
-                            <i data-lucide="presentation" class="w-4 h-4 text-slate-400"></i>
-                            Papan Tulis & Meja Guru (Depan Kelas)
-                        </div>
-
-                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                `;
-
-                currentSeating.forEach((pair, pairIdx) => {
-                    const studentLeft = pair[0];
-                    const studentRight = pair[1];
-
-                    html += `
-                        <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700 shadow flex flex-col justify-between">
-                            <div class="text-center text-[9px] font-extrabold text-slate-500 mb-2.5 uppercase tracking-wider pb-1 border-b border-slate-700">Meja ${pairIdx + 1}</div>
-                            
-                            <div class="grid grid-cols-2 gap-1.5">
-                                ${studentLeft ? `
-                                    <div class="p-1.5 rounded-lg text-center ${studentLeft.jenisKelamin === 'L' ? 'bg-blue-950/80 border border-blue-800 text-blue-200' : 'bg-rose-950/80 border border-rose-800 text-rose-200'}">
-                                        <div class="w-4 h-4 rounded-full ${studentLeft.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-extrabold mx-auto mb-1">
-                                            ${studentLeft.jenisKelamin}
-                                        </div>
-                                        <!-- Menampilkan nama s/d 3 suku kata / format rapi, diperlebar -->
-                                        <div class="text-[10px] font-bold truncate tracking-tight" title="${studentLeft.namaSiswa}">${getShortName(studentLeft.namaSiswa)}</div>
-                                        <div class="text-[8px] opacity-75 mt-0.5 truncate">${studentLeft.namaSekolah}</div>
-                                    </div>
-                                ` : `
-                                    <div class="p-1.5 rounded-lg text-center border border-dashed border-slate-700 bg-slate-900/40 text-slate-600 flex flex-col justify-center items-center min-h-[50px]">
-                                        <span class="text-[9px] font-bold">Kosong</span>
-                                    </div>
-                                `}
-
-                                ${studentRight ? `
-                                    <div class="p-1.5 rounded-lg text-center ${studentRight.jenisKelamin === 'L' ? 'bg-blue-950/80 border border-blue-800 text-blue-200' : 'bg-rose-950/80 border border-rose-800 text-rose-200'}">
-                                        <div class="w-4 h-4 rounded-full ${studentRight.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-extrabold mx-auto mb-1">
-                                            ${studentRight.jenisKelamin}
-                                        </div>
-                                        <!-- Menampilkan nama s/d 3 suku kata / format rapi, diperlebar -->
-                                        <div class="text-[10px] font-bold truncate tracking-tight" title="${studentRight.namaSiswa}">${getShortName(studentRight.namaSiswa)}</div>
-                                        <div class="text-[8px] opacity-75 mt-0.5 truncate">${studentRight.namaSekolah}</div>
-                                    </div>
-                                ` : `
-                                    <div class="p-1.5 rounded-lg text-center border border-dashed border-slate-700 bg-slate-900/40 text-slate-600 flex flex-col justify-center items-center min-h-[50px]">
-                                        <span class="text-[9px] font-bold">Kosong</span>
-                                    </div>
-                                `}
-                            </div>
-                        </div>
-                    `;
-                });
-
-                html += `
-                        </div>
-                    </div>
-                `;
-            }
-
-            if (dynamicContentArea) dynamicContentArea.innerHTML = html;
-            lucide.createIcons();
-        }
-
-        // PREPARE PRINT AREA (Daftar Siswa Halaman 1, Denah Tempat Duduk Halaman 2)
-        function preparePrintArea() {
+        async function initFirebase() {
             try {
-                printArea.innerHTML = '';
-                const ta = document.getElementById('config-ta').value;
-                const docDate = document.getElementById('config-date').value;
-                const kepsekName = document.getElementById('config-kepsek-name').value;
-                const kepsekNip = document.getElementById('config-kepsek-nip').value;
-
-                distributedClasses.forEach((c) => {
-                    const currentStudents = c.students || [];
-                    const currentSeating = c.seating || [];
-
-                    const boysCount = currentStudents.filter(s => s.jenisKelamin === 'L').length;
-                    const girlsCount = currentStudents.filter(s => s.jenisKelamin === 'P').length;
-
-                    // Mengambil data Wali Kelas dan NIP paling update langsung dari Class Configurations
-                    const conf = classConfigurations.find(cfg => cfg.letter === c.letter) || {};
-                    const currentWaliKelas = conf.waliKelas || `Wali Kelas VII${activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X')} ${c.letter}`;
-                    const currentWaliNip = conf.nip ? "NIP " + conf.nip : "........................................";
-
-                    // --- HALAMAN 1: DAFTAR NAMA SISWA KELAS (PAS 1 HALAMAN, PROPORSIONAL) ---
-                    const page1 = document.createElement('div');
-                    page1.className = 'print-page bg-white p-4 flex flex-col justify-between';
-                    
-                    let tableRows = '';
-                    currentStudents.forEach((s, idx) => {
-                        tableRows += `
-                            <tr class="border-b border-slate-300">
-                                <td class="border border-slate-400 px-3 py-0.5 text-center text-[11px] font-bold">${idx + 1}</td>
-                                <td class="border border-slate-400 px-3 py-0.5 text-[11px] font-mono">${s.nisn}</td>
-                                <!-- Fit to cell: Truncate long names -->
-                                <td class="border border-slate-400 px-3 py-0.5 text-[11px] font-bold truncate" title="${s.namaSiswa}">${s.namaSiswa}</td>
-                                <td class="border border-slate-400 px-3 py-0.5 text-center text-[11px] font-semibold">${s.jenisKelamin}</td>
-                                <!-- Fit to cell: Truncate long school names -->
-                                <td class="border border-slate-400 px-3 py-0.5 text-[11px] truncate" title="${s.namaSekolah}">${s.namaSekolah}</td>
-                            </tr>
-                        `;
-                    });
-
-                    page1.innerHTML = `
-                        <!-- Header Kop Surat SMP 2 Kedungbanteng (Official) -->
-                        <div class="text-center border-b-4 border-double border-slate-900 pb-2 mb-3">
-                            <div class="flex items-center justify-center gap-4">
-                                <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-12 h-12 object-contain logo-transparent" alt="Logo SMPN 2 Kedungbanteng">
-                                <div class="text-left">
-                                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800 leading-tight">DAFTAR NAMA SISWA KELAS VII${activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X')} ${c.letter}</h2>
-                                    <h1 class="text-lg font-black tracking-wider uppercase text-slate-900 leading-tight">SEKOLAH MENENGAH PERTAMA NEGERI 2 KEDUNGBANTENG</h1>
-                                    <p class="text-[9px] font-bold text-slate-600 tracking-wide uppercase">TAHUN AJARAN ${ta}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Table Daftar Siswa Lebar Penuh dengan layout fixed agar fit to cell rapi & Proporsional sesuai request -->
-                        <div class="flex-grow overflow-hidden mt-2">
-                            <table class="w-full border-collapse border border-slate-400 text-xs table-fixed">
-                                <thead>
-                                    <tr class="bg-slate-100 border-b border-slate-400 text-left font-bold text-slate-800">
-                                        <!-- Lebar kolom diperbarui 100% mengikuti persentase requested: 5%, 10%, 38%, 5%, 42% -->
-                                        <th class="border border-slate-400 px-3 py-1 text-center w-[5%]">NO</th>
-                                        <th class="border border-slate-400 px-3 py-1 w-[10%]">NISN</th>
-                                        <th class="border border-slate-400 px-3 py-1 w-[38%]">NAMA SISWA</th>
-                                        <th class="border border-slate-400 px-3 py-1 text-center w-[5%]">JK</th>
-                                        <th class="border border-slate-400 px-3 py-1 w-[42%]">ASAL SEKOLAH</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${tableRows}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- Footer Halaman 1 (Rekap & TTD) -->
-                        <div class="mt-4">
-                            <div class="grid grid-cols-2 gap-4 items-end text-xs">
-                                <!-- Recapitulation Table -->
-                                <div>
-                                    <table class="w-full border-collapse border border-slate-300 text-[10px]">
-                                        <tbody>
-                                            <tr class="border-b border-slate-200">
-                                                <td class="px-2 py-0.5 font-bold text-slate-600 w-28">LAKI-LAKI (L)</td>
-                                                <td class="px-2 py-0.5 font-extrabold">: ${boysCount} Siswa</td>
-                                            </tr>
-                                            <tr class="border-b border-slate-200">
-                                                <td class="px-2 py-0.5 font-bold text-slate-600">PEREMPUAN (P)</td>
-                                                <td class="px-2 py-0.5 font-extrabold">: ${girlsCount} Siswa</td>
-                                            </tr>
-                                            <tr class="bg-slate-50 font-bold">
-                                                <td class="px-2 py-1 text-slate-800">TOTAL SISWA</td>
-                                                <td class="px-2 py-1 text-blue-900 font-black">: ${currentStudents.length} Siswa</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <!-- Tanggal Dokumen (Diperbarui: non-italic, non-bold, text-xs seimbang dengan Mengetahui) -->
-                                <div class="text-right font-normal text-xs text-black pr-6">
-                                    ${docDate}
-                                </div>
-                            </div>
-
-                            <!-- Signatures Block (Diperbarui: NIP ukuran font sama dengan nama (text-sm) & gelar proper-case) -->
-                            <div class="grid grid-cols-2 gap-4 mt-6 text-xs">
-                                <div class="text-center">
-                                    <p class="font-bold">Mengetahui,</p>
-                                    <p class="font-bold">Kepala Sekolah</p>
-                                    <div class="h-12"></div>
-                                    <p class="font-extrabold underline text-sm">${kepsekName}</p>
-                                    <p class="text-sm font-semibold text-slate-800 font-mono">${kepsekNip}</p>
-                                </div>
-                                <div class="text-center">
-                                    <p class="font-bold">&nbsp;</p>
-                                    <p class="font-bold">Wali Kelas</p>
-                                    <div class="h-12"></div>
-                                    <p class="font-extrabold underline text-sm">${currentWaliKelas}</p>
-                                    <p class="text-sm font-semibold text-slate-800 font-mono">${currentWaliNip}</p>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-
-                    // --- HALAMAN 2: DENAH TEMPAT DUDUK MEJA BERPASANGAN (BESAR, TINGGI h-[145px] & WRAP TEXT) ---
-                    const page2 = document.createElement('div');
-                    page2.className = 'print-page bg-white p-4 flex flex-col justify-between';
-
-                    let seatingGridHtml = '';
-                    currentSeating.forEach((pair, pairIdx) => {
-                        const studentLeft = pair[0];
-                        const studentRight = pair[1];
-                        seatingGridHtml += `
-                            <!-- Diperbarui: Seating Box ditingkatkan tingginya menjadi h-[145px] & Nama wrap-text (whitespace-normal break-words line-clamp-3) -->
-                            <div class="border border-slate-400 p-2.5 text-center bg-white rounded-md shadow-sm h-[145px] flex flex-col justify-between">
-                                <div class="font-extrabold text-[10px] border-b border-slate-300 pb-1 mb-1 text-slate-500 uppercase font-bold">Meja ${pairIdx + 1}</div>
-                                <div class="grid grid-cols-2 gap-1.5 text-[10px] items-center h-full">
-                                    ${studentLeft ? `
-                                        <div class="p-1 rounded bg-slate-50 border border-slate-200 h-full flex flex-col justify-center">
-                                            <div class="w-4 h-4 rounded-full ${studentLeft.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-bold mx-auto mb-1">${studentLeft.jenisKelamin}</div>
-                                            <!-- Fit to cell: Lebar nama diperbesar, wrap text & Proper Case -->
-                                            <div class="font-extrabold text-[11px] leading-tight text-slate-900 whitespace-normal break-words line-clamp-3 px-0.5" title="${studentLeft.namaSiswa}">${studentLeft.namaSiswa}</div>
-                                        </div>
-                                    ` : `
-                                        <div class="p-1 rounded border border-dashed border-slate-200 text-slate-400 text-[8px] h-full flex items-center justify-center">Kosong</div>
-                                    `}
-
-                                    ${studentRight ? `
-                                        <div class="p-1 rounded bg-slate-50 border border-slate-200 h-full flex flex-col justify-center">
-                                            <div class="w-3.5 h-3.5 rounded-full ${studentRight.jenisKelamin === 'L' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'} flex items-center justify-center text-[8px] font-bold mx-auto mb-1">${studentRight.jenisKelamin}</div>
-                                            <!-- Fit to cell: Lebar nama diperbesar, wrap text & Proper Case -->
-                                            <div class="font-extrabold text-[11px] leading-tight text-slate-900 whitespace-normal break-words line-clamp-3 px-0.5" title="${studentRight.namaSiswa}">${studentRight.namaSiswa}</div>
-                                        </div>
-                                    ` : `
-                                        <div class="p-1 rounded border border-dashed border-slate-200 text-slate-400 text-[8px] h-full flex items-center justify-center">Kosong</div>
-                                    `}
-                                </div>
-                            </div>
-                        `;
-                    });
-
-                    page2.innerHTML = `
-                        <!-- Header Kop Surat Denah (Official) -->
-                        <div class="text-center border-b-4 border-double border-slate-900 pb-2 mb-4">
-                            <div class="flex items-center justify-center gap-3">
-                                <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-12 h-12 object-contain logo-transparent" alt="Logo SMPN 2 Kedungbanteng">
-                                <div class="text-left">
-                                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800 leading-tight">DENAH TEMPAT DUDUK KELAS VII${activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X')} ${c.letter}</h2>
-                                    <h1 class="text-lg font-black tracking-wider uppercase text-slate-900 leading-tight">SEKOLAH MENENGAH PERTAMA NEGERI 2 KEDUNGBANTENG</h1>
-                                    <p class="text-[9px] font-bold text-slate-600 tracking-wide uppercase">TAHUN AJARAN ${ta}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Papan Tulis / Meja Guru -->
-                        <div class="w-full bg-slate-100 text-slate-600 text-center py-1.5 rounded-lg font-bold border border-slate-300 text-[10px] mb-4">
-                            Papan Tulis & Meja Guru (Depan Kelas)
-                        </div>
-
-                        <!-- Grid Denah 4-Kolom Lebar, Sesuai Tampilan di Web Dashboard -->
-                        <div class="grid grid-cols-4 gap-3 flex-grow overflow-hidden">
-                            ${seatingGridHtml}
-                        </div>
-
-                        <!-- Footer Halaman 2 (TTD Wali Kelas Saja di Bawah, Tanggal non-italic non-bold) -->
-                        <div class="mt-4 pt-3 border-t border-dashed border-slate-200">
-                            <div class="grid grid-cols-2 gap-4 text-xs">
-                                <div></div>
-                                <div class="text-center">
-                                    <p class="font-normal text-xs text-black mb-1">${docDate}</p>
-                                    <p class="font-bold text-slate-800 leading-tight">Wali Kelas</p>
-                                    <div class="h-12"></div>
-                                    <p class="font-extrabold underline text-sm">${currentWaliKelas}</p>
-                                    <p class="text-sm font-semibold text-slate-800 font-mono">${currentWaliNip}</p>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-
-                    printArea.appendChild(page1);
-                    printArea.appendChild(page2);
-                });
-                lucide.createIcons();
-            } catch (err) {
-                console.error("Gagal menyiapkan area cetak PDF:", err);
-                showToast("Gagal Cetak PDF", "Terjadi kesalahan saat menyusun dokumen: " + err.message, "error");
-            }
-        }
-
-        // EXPORT TO EXCEL DENGAN METODE STANDARD XLSX.WRITEFILE LANGSUNG (DIJAMIN BEBAS ERROR SANDBOX SEPERTI DI AWAL)
-        function exportToExcel() {
-            try {
-                if (distributedClasses.length === 0) {
-                    showToast("Tidak Ada Data", "Silakan susun pembagian kelas terlebih dahulu.", "error");
-                    return;
+                if (!firebase.apps.length) firebase.initializeApp(defaultFirebaseConfig);
+                db = firebase.firestore();
+                const auth = firebase.auth();
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    authUser = (await auth.signInWithCustomToken(__initial_auth_token)).user;
+                } else {
+                    authUser = (await auth.signInAnonymously()).user;
                 }
-                
-                const wb = XLSX.utils.book_new();
-                const ta = document.getElementById('config-ta').value;
-                const docDate = document.getElementById('config-date').value;
-                const kepsekName = document.getElementById('config-kepsek-name').value;
-                const kepsekNip = document.getElementById('config-kepsek-nip').value;
-
-                distributedClasses.forEach((c) => {
-                    const currentStudents = c.students || [];
-                    const currentSeating = c.seating || arrangeSeating(currentStudents);
-                    
-                    // Mengambil data Wali Kelas dan NIP paling update langsung dari Class Configurations
-                    const conf = classConfigurations.find(cfg => cfg.letter === c.letter) || {};
-                    const currentWaliKelas = conf.waliKelas || `Wali Kelas VII${activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X')} ${c.letter}`;
-                    const currentWaliNip = conf.nip ? "NIP " + conf.nip : "";
-
-                    // --- SHEET 1: DAFTAR NAMA SISWA ---
-                    const sheetData = [];
-                    sheetData.push(["DAFTAR NAMA SISWA KELAS VII" + (activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X')) + " " + c.letter]);
-                    sheetData.push(["SEKOLAH MENENGAH PERTAMA NEGERI 2 KEDUNGBANTENG"]);
-                    sheetData.push(["TAHUN AJARAN " + ta]);
-                    sheetData.push([]); 
-
-                    sheetData.push(["NO", "NISN", "NAMA", "JENIS KELAMIN", "ASAL SEKOLAH"]);
-
-                    currentStudents.forEach((s, idx) => {
-                        sheetData.push([
-                            idx + 1,
-                            s.nisn,
-                            s.namaSiswa, 
-                            s.jenisKelamin === 'L' ? 'LAKI-LAKI' : 'PEREMPUAN',
-                            s.namaSekolah 
-                        ]);
-                    });
-
-                    const boysCount = currentStudents.filter(s => s.jenisKelamin === 'L').length;
-                    const girlsCount = currentStudents.filter(s => s.jenisKelamin === 'P').length;
-                    
-                    sheetData.push(["", "LAKI-LAKI", boysCount, "", docDate]);
-                    sheetData.push(["", "PEREMPUAN", girlsCount]);
-                    sheetData.push(["", "JUMLAH", currentStudents.length]);
-                    sheetData.push([]); 
-
-                    sheetData.push(["", "Mengetahui,"]);
-                    sheetData.push(["", "Kepala Sekolah", "", "", "Wali Kelas"]);
-                    sheetData.push([]); 
-                    sheetData.push([]);
-                    sheetData.push([]);
-                    sheetData.push(["", kepsekName, "", "", currentWaliKelas]);
-                    sheetData.push(["", kepsekNip, "", "", currentWaliNip]);
-
-                    const ws1 = XLSX.utils.aoa_to_sheet(sheetData);
-                    const wscols = [
-                        {wch: 6},  // NO
-                        {wch: 18}, // NISN
-                        {wch: 35}, // NAMA
-                        {wch: 22}, // JENIS KELAMIN
-                        {wch: 30}  // ASAL SEKOLAH
-                    ];
-                    ws1['!cols'] = wscols;
-                    XLSX.utils.book_append_sheet(wb, ws1, `Siswa VII${activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X')} ${c.letter}`);
-
-                    // --- SHEET 2: DENAH TEMPAT DUDUK (GRID 4-KOLOM MEJA) ---
-                    const denahData = [];
-                    denahData.push(["DENAH TEMPAT DUDUK KELAS VII" + (activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X')) + " " + c.letter]);
-                    denahData.push(["SMP NEGERI 2 KEDUNGBANTENG"]);
-                    denahData.push(["TAHUN AJARAN " + ta]);
-                    denahData.push([]);
-                    denahData.push(["", "", "PAPAN TULIS & MEJA GURU (DEPAN KELAS)"]);
-                    denahData.push([]);
-
-                    const desksPerRow = 4;
-                    for (let r = 0; r < currentSeating.length; r += desksPerRow) {
-                        const rowDesks = currentSeating.slice(r, r + desksPerRow);
-                        
-                        const labelRow = [];
-                        const leftRow = [];
-                        const rightRow = [];
-
-                        rowDesks.forEach((pair, idx) => {
-                            const deskNum = r + idx + 1;
-                            labelRow.push(`MEJA ${deskNum}`, "");
-                            
-                            const l = pair[0];
-                            const rStudent = pair[1];
-
-                            leftRow.push(l ? l.namaSiswa : "Kosong");
-                            rightRow.push(rStudent ? rStudent.namaSiswa : "Kosong");
-                        });
-
-                        denahData.push(labelRow);
-                        denahData.push(leftRow);
-                        denahData.push(rightRow);
-                        denahData.push([]); // Spacer antar baris meja
-                    }
-
-                    const ws2 = XLSX.utils.aoa_to_sheet(denahData);
-                    XLSX.utils.book_append_sheet(wb, ws2, `Denah VII${activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X')} ${c.letter}`);
-                });
-
-                // KEMBALI KE METODE STANDARD YANG TERBUKTI BEBAS ERROR & BERHASIL DI AWAL SESUAI PROMPT
-                const filename = `Pembagian_Kelas_VII${activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X')}_SMPN2_Kedungbanteng_${String(ta || '').replace('/', '-')}.xlsx`;
-                XLSX.writeFile(wb, filename);
-
-                showToast("Ekspor Excel", "File Excel multi-sheet berhasil diunduh.", "success");
-            } catch (err) {
-                console.error("Gagal mengekspor data ke Excel:", err);
-                showToast("Gagal Ekspor Excel", "Terjadi kesalahan saat menyusun dokumen Excel: " + err.message, "error");
-            }
-        }
-
-        function closeExcelModal() {
-            const fallbackModal = document.getElementById('excel-fallback-modal');
-            if (fallbackModal) fallbackModal.classList.add('hidden');
-        }
-
-        // Generate Sample Template download
-        function downloadExcelTemplate() {
-            try {
-                const templateData = [
-                    ["NISN", "Nama Siswa", "Jenis Kelamin (P/L)", "Skor Nilai", "Nama Sekolah", "Kelas Asal", "Prestasi Sertifikat"],
-                    ["0123456789", "Andi Setiadi", "L", 85.5, "SD Negeri 1 Kedungbanteng", "A", "Sertifikat"],
-                    ["0123456790", "Budi Raharjo", "L", 78.0, "SDN 2 Kedungbanteng", "B", ""],
-                    ["0123456791", "Citra Kirana", "P", 92.0, "SD N 1 Purwokerto", "C", ""],
-                    ["0123456792", "Dewi Lestari", "P", 88.5, "MI Ma'arif Kedungbanteng", "D", "Sertifikat"]
-                ];
-
-                const ws = XLSX.utils.aoa_to_sheet(templateData);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Template");
-                
-                const filename = "Template_PMB_SMPN2_Kedungbanteng.xlsx";
-                XLSX.writeFile(wb, filename);
-
-                showToast("Template Diunduh", "Gunakan template ini untuk mengisi data Anda.", "info");
-            } catch (err) {
-                console.error("Gagal mengunduh template:", err);
-            }
-        }
-
-        // Parse Excel File dengan Deteksi Baris Header Dinamis secara Tangguh
-        function handleFile(file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    
-                    // MEMBUAT DETEKSI HEADER DINAMIS: memindai 12 baris pertama untuk mencari sel kunci
-                    const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                    let headerIndex = 0;
-                    let foundHeader = false;
-                    
-                    for (let i = 0; i < Math.min(rawRows.length, 12); i++) {
-                        const row = rawRows[i];
-                        if (row && row.some(cell => {
-                            const val = String(cell).toLowerCase().trim();
-                            return val === 'nisn' || val === 'nama' || val.includes('nama siswa') || val.includes('no pendaftaran');
-                        })) {
-                            headerIndex = i;
-                            foundHeader = true;
-                            break;
-                        }
-                    }
-
-                    // Muat data JSON SheetJS berdasarkan range baris header yang telah diidentifikasi
-                    const dataRows = XLSX.utils.sheet_to_json(worksheet, foundHeader ? { range: headerIndex } : {});
-
-                    if (dataRows.length === 0) {
-                        showToast("File Kosong", "Excel tidak memiliki baris data pendaftar.", "error");
-                        return;
-                    }
-
-                    const mapped = dataRows.map((row, index) => {
-                        const findValue = (possibleKeys) => {
-                            for (let key of Object.keys(row)) {
-                                if (possibleKeys.includes(key.toLowerCase().trim())) {
-                                    return row[key];
-                                }
-                            }
-                            return null;
-                        };
-
-                        const nisn = findValue(['nisn', 'no pendaftaran', 'no', 'nopendaftaran', 'id', 'pendaftaran']) || `PMB-${1000 + index}`;
-                        const namaSiswaRaw = findValue(['nama siswa', 'nama', 'nama lengkap', 'namasiswa']) || 'Tanpa Nama';
-                        const jenisKelamin = String(findValue(['jenis kelamin', 'jk', 'gender', 'sex', 'j_kelamin']) || 'L').toUpperCase().trim();
-                        const skorNilai = parseFloat(findValue(['skor nilai', 'nilai', 'skor', 'skornilai', 'un']) || 75.0); // Default 75
-                        const namaSekolahRaw = findValue(['nama sekolah', 'sekolah', 'sekolah asal', 'asal sekolah', 'namasekolah']) || 'SMPN 2 Kedungbanteng';
-                        const kelasAsalRaw = findValue(['kelas asal', 'kelas vii', 'kelas', 'asal kelas', 'kelassiswa']) || 'A';
-                        const prestasi = String(findValue(['prestasi sertifikat', 'prestasi', 'sertifikat', 'keterangan']) || '').trim();
-
-                        // Sempurnakan filter deteksi Sertifikat (Rule Sertifikat/Blank)
-                        const cleanPres = prestasi.toLowerCase();
-                        const hasSertifikat = (cleanPres.includes('sertifikat') || cleanPres === 'ada' || (prestasi !== '' && cleanPres !== 'kosong'));
-
-                        return {
-                            nisn: String(nisn).trim().toUpperCase(),
-                            namaSiswa: toProperCase(namaSiswaRaw),
-                            jenisKelamin: (jenisKelamin.startsWith('P') || jenisKelamin === 'PEREMPUAN') ? 'P' : 'L',
-                            skorNilai,
-                            kelasAsal: String(kelasAsalRaw).replace(/[^A-Z0-9]/gi, '').toUpperCase(),
-                            namaSekolah: toProperCase(namaSekolahRaw),
-                            prestasi: hasSertifikat ? 'Sertifikat' : 'Kosong'
-                        };
-                    });
-
-                    rawStudents = mapped;
-                    showToast("Impor Berhasil", `${rawStudents.length} siswa berhasil dimuat. Silakan klik 'Susun & Bagi Kelas' untuk memproses.`, "success");
-                    renderStatsPanel();
-                    searchAndRenderOutStudents();
-                    
-                    if (quickStats) quickStats.classList.remove('hidden');
-
-                } catch (error) {
-                    console.error(error);
-                    showToast("Gagal Membaca File", "Terjadi kesalahan saat memproses file Excel.", "error");
+                if (authUser) {
+                    isFirebaseActive = true;
+                    document.getElementById('firebase-status').innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span><span>Cloud Terhubung (Online)</span>`;
+                    document.getElementById('firebase-status').classList.replace('text-slate-400', 'text-emerald-300');
+                    document.getElementById('btn-load-cloud').classList.remove('hidden');
+                    await loadConfigFromFirestore();
+                    await loadResultFromFirestore(false);
                 }
-            };
-            reader.readAsArrayBuffer(file);
+            } catch (err) {}
         }
 
-        // Generate Sample Demo Data
+        // ==========================================
+        // MODUL 4: EXCEL PARSER & EXPORT
+        // ==========================================
+        function getShortName(fullName) {
+            if (!fullName) return '';
+            const parts = fullName.trim().split(/\s+/);
+            if (parts.length <= 2) return fullName;
+            return parts[0] + ' ' + parts[1] + ' ' + parts[2].charAt(0) + '.';
+        }
+
+        function normalizeSchool(name) {
+            if (!name) return "SD SEBELUMNYA";
+            let clean = name.toLowerCase().trim();
+            clean = clean.replace(/sekolah dasar negeri|sekolah dasar negri|sd negeri|sd negri|sd\s+n\s*/g, 'sd ');
+            clean = clean.replace(/madrasah ibtidaiyah muhammadiyah|mi muhammadiyah|mim\s*/g, 'mim ');
+            clean = clean.replace(/madrasah ibtidaiyah ma'arif|madrasah ibtidaiyah maarif|mi ma'arif|mi maarif/g, 'mi maarif');
+            clean = clean.replace(/madrasah ibtidaiyah|mi\s+n|mi\s*/g, 'mi ');
+            clean = clean.replace(/sd\s+isla+m/g, 'sd islam');
+            clean = clean.replace(/sd\s+swasta/g, 'sd swasta');
+            clean = clean.replace(/[^a-z0-9\s]/g, '');
+            clean = clean.replace(/\s+/g, ' ').trim();
+            return clean.toUpperCase();
+        }
+
         function generateDemoData() {
             const firstNamesBoys = ["Agus", "Budi", "Candra", "Dedi", "Eko", "Fajar", "Gilang", "Heri", "Iwan", "Joko", "Kurniawan", "Lutfi", "Mulyono", "Nugroho", "Oki", "Prabowo", "Rian", "Setyawan", "Taufik", "Wahyu", "Yanto"];
             const firstNamesGirls = ["Anisa", "Berti", "Citra", "Dewi", "Eka", "Fitri", "Gita", "Hana", "Indah", "Juli", "Kartika", "Laras", "Mega", "Novi", "Olivia", "Putri", "Rina", "Sari", "Tari", "Utami", "Wulandari"];
@@ -1866,9 +593,7 @@
 
             for (let i = 1; i <= count; i++) {
                 const isBoy = Math.random() > 0.46; 
-                const firstName = isBoy 
-                    ? firstNamesBoys[Math.floor(Math.random() * firstNamesBoys.length)] 
-                    : firstNamesGirls[Math.floor(Math.random() * firstNamesGirls.length)];
+                const firstName = isBoy ? firstNamesBoys[Math.floor(Math.random() * firstNamesBoys.length)] : firstNamesGirls[Math.floor(Math.random() * firstNamesGirls.length)];
                 const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
                 const namaSiswa = `${firstName} ${lastName}`;
                 
@@ -1891,78 +616,440 @@
             return list;
         }
 
-        // Memulai Inisialisasi Koneksi Firebase Firestore saat Window dimuat
-        window.onload = function() {
-            // Assign DOM Elements after DOM is fully loaded (PENTING: Memperbaiki TypeError & ReferenceError)
-            dropzone = document.getElementById('dropzone');
-            fileInput = document.getElementById('file-input');
-            btnDemo = document.getElementById('btn-demo');
-            btnTemplate = document.getElementById('btn-template');
-            btnProcess = document.getElementById('btn-process');
-            mainStateCard = document.getElementById('main-state-card');
-            resultCard = document.getElementById('result-card');
-            quickStats = document.getElementById('quick-stats');
-            classTabs = document.getElementById('class-tabs');
-            dynamicContentArea = document.getElementById('dynamic-content-area');
-            toggleListView = document.getElementById('toggle-list-view');
-            toggleSeatingView = document.getElementById('toggle-seating-view');
-            btnExportExcel = document.getElementById('btn-export-excel');
-            btnPrintAll = document.getElementById('btn-print-all');
-            printArea = document.getElementById('print-area');
-            classSettingsList = document.getElementById('class-settings-list');
-            configClassesInput = document.getElementById('config-classes');
+        function downloadExcelTemplate() {
+            try {
+                const templateData = [
+                    ["NISN", "Nama Siswa", "Jenis Kelamin (P/L)", "Skor Nilai", "Nama Sekolah", "Kelas Asal", "Prestasi Sertifikat"],
+                    ["0123456789", "Andi Setiadi", "L", 85.5, "SD Negeri 1 Kedungbanteng", "A", "Sertifikat"],
+                    ["0123456790", "Budi Raharjo", "L", 78.0, "SDN 2 Kedungbanteng", "B", ""],
+                    ["0123456791", "Citra Kirana", "P", 92.0, "SD N 1 Purwokerto", "C", ""],
+                    ["0123456792", "Dewi Lestari", "P", 88.5, "MI Ma'arif Kedungbanteng", "D", "Sertifikat"]
+                ];
 
-            // Safely bind dropzone click
-            if (dropzone && fileInput) {
-                dropzone.addEventListener('click', () => fileInput.click());
+                const ws = XLSX.utils.aoa_to_sheet(templateData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Template");
                 
-                // Drag & Drop
-                dropzone.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    dropzone.classList.add('border-blue-500', 'bg-blue-50/30');
-                });
+                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const blobUrl = URL.createObjectURL(blob);
+                
+                const link = document.createElement("a");
+                link.href = blobUrl;
+                link.download = "Template_PMB_SMPN2_Kedungbanteng.xlsx";
+                document.body.appendChild(link);
+                link.click();
+                
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(blobUrl);
+                }, 200);
 
-                dropzone.addEventListener('dragleave', () => {
-                    dropzone.classList.remove('border-blue-500', 'bg-blue-50/30');
-                });
+                showToast("Template Diunduh", "Gunakan template ini untuk mengisi data Anda.", "info");
+            } catch (err) {
+                console.error("Gagal mengunduh template:", err);
+            }
+        }
 
-                dropzone.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    dropzone.classList.remove('border-blue-500', 'bg-blue-50/30');
-                    const files = e.dataTransfer.files;
-                    if (files.length > 0) {
-                        handleFile(files[0]);
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    
+                    // PEMBACAAN CERDAS (MENGABAIKAN KOP SURAT)
+                    const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false });
+                    let headerRow = [];
+                    let dataStartIndex = 0;
+                    let foundHeader = false;
+
+                    for (let i = 0; i < Math.min(rawRows.length, 15); i++) {
+                        const row = rawRows[i];
+                        if (!row) continue;
+                        const hasKey = row.some(cell => {
+                            if (!cell) return false;
+                            const val = String(cell).toLowerCase().trim();
+                            return val === 'nisn' || val === 'nama' || val.includes('nama siswa');
+                        });
+                        if (hasKey) {
+                            headerRow = row.map(c => c ? String(c).toLowerCase().trim() : '');
+                            dataStartIndex = i + 1;
+                            foundHeader = true;
+                            break;
+                        }
                     }
+
+                    if (!foundHeader) { showToast("Gagal", "Tidak menemukan baris header (NISN/NAMA).", "error"); return; }
+
+                    const mapped = [];
+                    for (let i = dataStartIndex; i < rawRows.length; i++) {
+                        const row = rawRows[i];
+                        if (!row || row.length === 0) continue; 
+                        const getVal = (possibleKeys) => {
+                            for (let j = 0; j < headerRow.length; j++) {
+                                if (possibleKeys.includes(headerRow[j])) return row[j];
+                            }
+                            return null;
+                        };
+
+                        const nisn = getVal(['nisn', 'no pendaftaran', 'no']);
+                        const namaSiswaRaw = getVal(['nama siswa', 'nama', 'nama lengkap']);
+                        if (!namaSiswaRaw && !nisn) continue;
+
+                        const jkRaw = String(getVal(['jenis kelamin', 'jk', 'gender']) || 'L').toUpperCase();
+                        const skorNilai = parseFloat(getVal(['skor nilai', 'nilai', 'un']) || 75.0);
+                        const sekolahRaw = getVal(['nama sekolah', 'sekolah asal', 'asal sekolah']) || 'SMPN 2 Kedungbanteng';
+                        const kelasAsalRaw = getVal(['kelas asal', 'kelas vii']) || 'A';
+                        const prestasiRaw = String(getVal(['prestasi sertifikat', 'prestasi', 'sertifikat', 'keterangan']) || '').trim().toLowerCase();
+
+                        mapped.push({
+                            nisn: String(nisn || `PMB-${1000 + i}`).trim().toUpperCase(),
+                            namaSiswa: toProperCase(namaSiswaRaw || 'Tanpa Nama'),
+                            jenisKelamin: jkRaw.startsWith('P') ? 'P' : 'L',
+                            skorNilai: isNaN(skorNilai) ? 75.0 : skorNilai,
+                            kelasAsal: String(kelasAsalRaw).replace(/[^A-Z0-9]/gi, '').toUpperCase() || 'A',
+                            namaSekolah: toProperCase(sekolahRaw),
+                            prestasi: (prestasiRaw.includes('sertifikat') || prestasiRaw === 'ada' || (prestasiRaw !== '' && prestasiRaw !== 'kosong')) ? 'Sertifikat' : 'Kosong'
+                        });
+                    }
+
+                    rawStudents = mapped;
+                    showToast("Impor Berhasil", `${rawStudents.length} siswa dimuat.`, "success");
+                    renderStatsPanel(); searchAndRenderOutStudents();
+                    if (quickStats) quickStats.classList.remove('hidden');
+
+                } catch (error) { showToast("Gagal Membaca File", "File corrupt atau format tidak sesuai.", "error"); }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function exportToExcel() {
+            try {
+                if (distributedClasses.length === 0) { showToast("Tidak Ada Data", "Susun kelas dahulu.", "error"); return; }
+                const wb = XLSX.utils.book_new();
+                const ta = document.getElementById('config-ta').value;
+                const docDate = document.getElementById('config-date').value;
+                const kepsekName = document.getElementById('config-kepsek-name').value;
+                const kepsekNip = document.getElementById('config-kepsek-nip').value;
+
+                distributedClasses.forEach((c) => {
+                    const currentStudents = c.students || [];
+                    const currentSeating = c.seating || arrangeSeating(currentStudents);
+                    const conf = classConfigurations.find(cfg => cfg.letter === c.letter) || {};
+                    const currentWaliNip = conf.nip ? "NIP " + conf.nip : "";
+                    const gradeStr = activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X');
+
+                    // SHEET 1
+                    const sheetData = [
+                        ["DAFTAR NAMA SISWA KELAS VII" + gradeStr + " " + c.letter], ["SEKOLAH MENENGAH PERTAMA NEGERI 2 KEDUNGBANTENG"], ["TAHUN AJARAN " + ta], [],
+                        ["NO", "NISN", "NAMA", "JENIS KELAMIN", "ASAL SEKOLAH"]
+                    ];
+                    currentStudents.forEach((s, idx) => sheetData.push([idx + 1, s.nisn, s.namaSiswa, s.jenisKelamin === 'L' ? 'LAKI-LAKI' : 'PEREMPUAN', s.namaSekolah]));
+                    sheetData.push(["", "LAKI-LAKI", currentStudents.filter(s => s.jenisKelamin === 'L').length, "", docDate]);
+                    sheetData.push(["", "PEREMPUAN", currentStudents.filter(s => s.jenisKelamin === 'P').length]);
+                    sheetData.push(["", "JUMLAH", currentStudents.length]);
+                    sheetData.push([]);
+                    sheetData.push(["", "Mengetahui,", "", "", "Wali Kelas"]);
+                    sheetData.push([]); sheetData.push([]); sheetData.push([]);
+                    sheetData.push(["", kepsekName, "", "", conf.waliKelas]);
+                    sheetData.push(["", kepsekNip, "", "", currentWaliNip]);
+
+                    const ws1 = XLSX.utils.aoa_to_sheet(sheetData);
+                    ws1['!cols'] = [{wch: 6}, {wch: 18}, {wch: 35}, {wch: 22}, {wch: 30}];
+                    XLSX.utils.book_append_sheet(wb, ws1, `Siswa VII${gradeStr} ${c.letter}`);
+
+                    // SHEET 2
+                    const denahData = [
+                        ["DENAH TEMPAT DUDUK KELAS VII" + gradeStr + " " + c.letter], ["SMP NEGERI 2 KEDUNGBANTENG"], ["TAHUN AJARAN " + ta], [],
+                        ["", "", "PAPAN TULIS & MEJA GURU (DEPAN KELAS)"], []
+                    ];
+                    for (let r = 0; r < currentSeating.length; r += 4) {
+                        const rowDesks = currentSeating.slice(r, r + 4);
+                        const labelRow = [], leftRow = [], rightRow = [];
+                        rowDesks.forEach((pair, idx) => {
+                            labelRow.push(`MEJA ${r + idx + 1}`, "");
+                            leftRow.push(pair[0] ? pair[0].namaSiswa : "Kosong");
+                            rightRow.push(pair[1] ? pair[1].namaSiswa : "Kosong");
+                        });
+                        denahData.push(labelRow, leftRow, rightRow, []);
+                    }
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(denahData), `Denah VII${gradeStr} ${c.letter}`);
+                });
+
+                XLSX.writeFile(wb, `Pembagian_Kelas_VII${activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X')}_SMPN2_Kdb_${ta.replace('/', '-')}.xlsx`);
+                showToast("Ekspor Excel", "File Excel multi-sheet berhasil diunduh.", "success");
+            } catch (err) { showToast("Gagal Ekspor Excel", err.message, "error"); }
+        }
+
+        // ==========================================
+        // MODUL 5: ALGORITMA DISTRIBUSI & RENDER UI
+        // ==========================================
+        function processAndDistribute() {
+            if (rawStudents.length === 0) return;
+            const capacityPerClass = parseInt(document.getElementById('config-capacity').value);
+            let pool = rawStudents.filter(s => !outStudentNisns.has(s.nisn));
+            const classCount = Math.max(parseInt(document.getElementById('config-classes').value), Math.ceil(pool.length / capacityPerClass));
+            
+            let classes = classConfigurations.map(conf => ({ ...conf, name: `VII${activeGradeLevel === 7 ? '' : (activeGradeLevel === 8 ? 'I' : 'X')} ${conf.letter}`, students: [], capacity: capacityPerClass, targetBoys: 0, targetGirls: 0 }));
+
+            let remainingL = pool.filter(s => s.jenisKelamin === 'L').length;
+            let remainingP = pool.filter(s => s.jenisKelamin === 'P').length;
+
+            classes.forEach((c, idx) => {
+                if (idx < classCount - 1) {
+                    const ratioL = remainingL / (remainingL + remainingP || 1);
+                    let targetB = 2 * Math.round((ratioL * c.capacity) / 2);
+                    targetB = Math.max(0, Math.min(c.capacity, targetB));
+                    c.targetBoys = targetB;
+                    c.targetGirls = c.capacity - targetB;
+                    remainingL -= c.targetBoys; remainingP -= c.targetGirls;
+                } else {
+                    c.targetBoys = remainingL; c.targetGirls = remainingP;
+                }
+            });
+
+            if (activeGradeLevel === 7) {
+                // Distribusi murni
+                let prestasiBoys = pool.filter(s => s.prestasi === 'Sertifikat' && s.jenisKelamin === 'L');
+                let prestasiGirls = pool.filter(s => s.prestasi === 'Sertifikat' && s.jenisKelamin === 'P');
+                let mainBoys = pool.filter(s => s.prestasi !== 'Sertifikat' && s.jenisKelamin === 'L');
+                let mainGirls = pool.filter(s => s.prestasi !== 'Sertifikat' && s.jenisKelamin === 'P');
+
+                classes.filter(c => c.type === 'prestasi').forEach(c => {
+                    c.students.push(...prestasiBoys.splice(0, c.targetBoys));
+                    c.students.push(...prestasiGirls.splice(0, c.targetGirls));
+                });
+
+                mainBoys = [...mainBoys, ...prestasiBoys].sort((a, b) => b.skorNilai - a.skorNilai);
+                mainGirls = [...mainGirls, ...prestasiGirls].sort((a, b) => b.skorNilai - a.skorNilai);
+
+                classes.filter(c => c.type === 'akademik').forEach(c => {
+                    c.students.push(...mainBoys.splice(0, c.targetBoys - c.students.filter(s=>s.jenisKelamin==='L').length));
+                    c.students.push(...mainGirls.splice(0, c.targetGirls - c.students.filter(s=>s.jenisKelamin==='P').length));
+                });
+
+                const distribute = (genderPool, isBoys) => {
+                    genderPool.forEach(s => {
+                        let eligibleClasses = classes.filter(c => c.students.filter(st => st.jenisKelamin === (isBoys ? 'L' : 'P')).length < (isBoys ? c.targetBoys : c.targetGirls));
+                        if(eligibleClasses.length > 0) eligibleClasses[0].students.push(s);
+                    });
+                };
+                distribute(mainBoys, true); distribute(mainGirls, false);
+
+            } else if (activeGradeLevel === 8) {
+                // Distribusi Kelompok Mapel
+                const pLetters = new Set(document.getElementById('config-prakarya-classes').value.trim().toUpperCase().split(',').map(s=>s.trim()));
+                const distributeSubPool = (subPool, targetClasses) => {
+                    subPool.filter(s=>s.jenisKelamin==='L').forEach(s => { let c = targetClasses.find(c => c.students.filter(st=>st.jenisKelamin==='L').length < c.targetBoys); if(c) c.students.push(s); });
+                    subPool.filter(s=>s.jenisKelamin==='P').forEach(s => { let c = targetClasses.find(c => c.students.filter(st=>st.jenisKelamin==='P').length < c.targetGirls); if(c) c.students.push(s); });
+                };
+                distributeSubPool(pool.filter(s => pLetters.has(s.kelasAsal)), classes.filter(c => pLetters.has(c.letter)));
+                distributeSubPool(pool.filter(s => !pLetters.has(s.kelasAsal)), classes.filter(c => !pLetters.has(c.letter)));
+            } else {
+                // Pengembalian Kelas IX murni sesuai Asal Kelas
+                classes.forEach(c => {
+                    c.students = pool.filter(s => s.kelasAsal === c.letter);
                 });
             }
 
-            if (fileInput) {
-                fileInput.addEventListener('change', (e) => {
-                    if (e.target.files.length > 0) {
-                        handleFile(e.target.files[0]);
-                    }
-                });
-            }
+            // Cleanup
+            let assignedIds = new Set();
+            classes.forEach(c => c.students.forEach(s => assignedIds.add(s.nisn)));
+            pool.filter(s => !assignedIds.has(s.nisn)).forEach(s => {
+                let best = classes.sort((a, b) => a.students.length - b.students.length)[0];
+                if (best) best.students.push(s);
+            });
 
-            // Load Demo Data
-            if (btnDemo) {
-                btnDemo.addEventListener('click', () => {
-                    rawStudents = generateDemoData();
+            classes.forEach(c => {
+                c.students.sort((a, b) => a.namaSiswa.localeCompare(b.namaSiswa));
+                c.seating = arrangeSeating(c.students);
+            });
+
+            distributedClasses = classes; activeClassIndex = 0;
+            renderStatsPanel(); renderClassTabs(); renderClassContent();
+            if (mainStateCard) mainStateCard.classList.add('hidden');
+            if (resultCard) resultCard.classList.remove('hidden');
+            showToast("Pembagian Selesai", "Berhasil disusun.", "success");
+            saveResultToFirestore();
+        }
+
+        function arrangeSeating(students) {
+            let boys = students.filter(s => s.jenisKelamin === 'L'), girls = students.filter(s => s.jenisKelamin === 'P'), pairs = [];
+            while (boys.length >= 2) pairs.push([boys.shift(), boys.shift()]);
+            while (girls.length >= 2) pairs.push([girls.shift(), girls.shift()]);
+            if (boys.length && girls.length) pairs.push([boys.shift(), girls.shift()]);
+            else if (boys.length) pairs.push([boys.shift(), null]);
+            else if (girls.length) pairs.push([girls.shift(), null]);
+            return pairs;
+        }
+
+        function searchAndRenderOutStudents() {
+            const container = document.getElementById('dropped-search-results');
+            if (!container) return;
+            const searchVal = document.getElementById('search-students-out').value.trim().toLowerCase();
+            if (rawStudents.length === 0) { container.innerHTML = `<p class="text-xs text-center text-slate-400 py-4">Belum ada data pendaftar.</p>`; return; }
+            if (!searchVal) { container.innerHTML = `<p class="text-xs text-center text-slate-400 py-4">Ketik nama untuk mencari siswa.</p>`; return; }
+            const filtered = rawStudents.filter(s => s.namaSiswa.toLowerCase().includes(searchVal));
+            container.innerHTML = '';
+            filtered.forEach(s => {
+                const isOut = outStudentNisns.has(s.nisn);
+                container.innerHTML += `
+                    <div class="p-2 flex items-center justify-between text-xs">
+                        <div class="flex flex-col"><span class="font-bold">${s.namaSiswa}</span><span class="text-[10px] text-slate-400">NISN: ${s.nisn}</span></div>
+                        <button onclick="toggleStudentOutStatus('${s.nisn}')" class="px-2 py-1 rounded text-[10px] font-extrabold ${isOut ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'}">${isOut ? 'Siswa Keluar 🔴' : 'Aktif 🟢'}</button>
+                    </div>`;
+            });
+        }
+
+        function toggleStudentOutStatus(nisn) {
+            if (outStudentNisns.has(nisn)) outStudentNisns.delete(nisn); else outStudentNisns.add(nisn);
+            document.getElementById('dropped-count-badge').innerText = `${outStudentNisns.size} Keluar`;
+            searchAndRenderOutStudents(); triggerAutosave();
+        }
+
+        function renderStatsPanel() {
+            document.getElementById('stat-total-students').innerText = rawStudents.length;
+            document.getElementById('stat-boys').innerText = rawStudents.filter(s => s.jenisKelamin === 'L').length;
+            document.getElementById('stat-girls').innerText = rawStudents.filter(s => s.jenisKelamin === 'P').length;
+            document.getElementById('stat-prestasi').innerText = rawStudents.filter(s => s.prestasi === 'Sertifikat').length;
+        }
+
+        function renderClassTabs() {
+            if (!classTabs) return;
+            classTabs.innerHTML = '';
+            distributedClasses.forEach((c, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border ${idx === activeClassIndex ? 'bg-blue-900 text-white shadow-sm' : 'bg-white text-slate-700'}`;
+                btn.innerHTML = `<span>${c.name}</span><span class="text-[10px] opacity-70">(${c.students.length})</span>`;
+                btn.addEventListener('click', () => { activeClassIndex = idx; renderClassTabs(); renderClassContent(); });
+                classTabs.appendChild(btn);
+            });
+        }
+
+        function renderClassContent() {
+            const activeClass = distributedClasses[activeClassIndex];
+            if (!activeClass) return;
+            let html = '';
+            if (viewMode === 'list') {
+                html += `<div class="overflow-x-auto border border-slate-100 rounded-xl"><table class="w-full text-xs text-left table-fixed"><thead class="bg-slate-100 text-slate-700 text-[10px]"><tr><th class="px-4 py-3 w-[5%]">NO</th><th class="px-4 py-3 w-[10%]">NISN</th><th class="px-4 py-3 w-[38%]">NAMA SISWA</th><th class="px-4 py-3 w-[5%]">JK</th><th class="px-4 py-3 w-[42%]">ASAL SEKOLAH</th></tr></thead><tbody>`;
+                activeClass.students.forEach((s, idx) => {
+                    html += `<tr class="border-t border-slate-100 hover:bg-slate-50"><td class="px-4 py-2">${idx + 1}</td><td class="px-4 py-2 font-mono">${s.nisn}</td><td class="px-4 py-2 font-bold truncate" title="${s.namaSiswa}">${s.namaSiswa}</td><td class="px-4 py-2">${s.jenisKelamin}</td><td class="px-4 py-2 truncate">${s.namaSekolah}</td></tr>`;
+                });
+                html += `</tbody></table></div>`;
+            } else {
+                html += `<div class="bg-slate-900 p-6 rounded-2xl"><div class="w-full bg-slate-800 text-slate-400 text-center py-2 rounded-xl text-xs mb-8">Papan Tulis & Meja Guru</div><div class="grid grid-cols-4 gap-4">`;
+                activeClass.seating.forEach((pair, idx) => {
+                    html += `<div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700 h-[110px] flex flex-col justify-between"><div class="text-[9px] text-slate-500 uppercase">Meja ${idx + 1}</div><div class="grid grid-cols-2 gap-1.5 text-[10px] h-full">`;
+                    [pair[0], pair[1]].forEach(s => {
+                        if(s) html += `<div class="p-1 rounded bg-slate-50 text-slate-900 flex flex-col justify-center"><span class="font-extrabold whitespace-normal break-words line-clamp-3 leading-tight px-0.5">${s.namaSiswa}</span></div>`;
+                        else html += `<div class="p-1 rounded border border-dashed border-slate-600 text-slate-500 flex items-center justify-center">Kosong</div>`;
+                    });
+                    html += `</div></div>`;
+                });
+                html += `</div></div>`;
+            }
+            document.getElementById('dynamic-content-area').innerHTML = html;
+        }
+
+        // ==========================================
+        // MODUL 6: PDF PRINT RENDERER
+        // ==========================================
+        function preparePrintArea() {
+            printArea.innerHTML = '';
+            const ta = document.getElementById('config-ta').value;
+            const docDate = document.getElementById('config-date').value;
+            const kepsekName = document.getElementById('config-kepsek-name').value;
+            const kepsekNip = document.getElementById('config-kepsek-nip').value;
+
+            distributedClasses.forEach((c) => {
+                const conf = classConfigurations.find(cfg => cfg.letter === c.letter) || {};
+                const cWali = conf.waliKelas || `Wali Kelas VII ${c.letter}`;
+                const cNip = conf.nip ? "NIP " + conf.nip : "";
+                
+                // PAGE 1: LIST
+                let tableRows = '';
+                c.students.forEach((s, i) => tableRows += `<tr><td class="border border-slate-400 px-2 py-1 text-center font-bold">${i + 1}</td><td class="border border-slate-400 px-2 py-1 font-mono">${s.nisn}</td><td class="border border-slate-400 px-2 py-1 font-bold truncate">${s.namaSiswa}</td><td class="border border-slate-400 px-2 py-1 text-center">${s.jenisKelamin}</td><td class="border border-slate-400 px-2 py-1 truncate">${s.namaSekolah}</td></tr>`);
+                
+                const page1 = document.createElement('div');
+                page1.className = 'print-page p-4 flex flex-col justify-between';
+                page1.innerHTML = `
+                    <div class="text-center border-b-4 border-double border-slate-900 pb-2 mb-3 flex items-center justify-center gap-4">
+                        <img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-12 h-12 object-contain">
+                        <div class="text-left"><h2 class="text-sm font-bold uppercase">DAFTAR NAMA SISWA KELAS ${c.name}</h2><h1 class="text-lg font-black">SMP NEGERI 2 KEDUNGBANTENG</h1></div>
+                    </div>
+                    <div class="flex-grow overflow-hidden mt-2">
+                        <table class="w-full border-collapse border border-slate-400 text-xs table-fixed">
+                            <thead><tr class="bg-slate-100"><th class="border border-slate-400 px-2 py-1 w-[5%]">NO</th><th class="border border-slate-400 px-2 py-1 w-[10%]">NISN</th><th class="border border-slate-400 px-2 py-1 w-[38%]">NAMA SISWA</th><th class="border border-slate-400 px-2 py-1 w-[5%]">JK</th><th class="border border-slate-400 px-2 py-1 w-[42%]">ASAL SEKOLAH</th></tr></thead>
+                            <tbody>${tableRows}</tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 flex justify-between text-xs">
+                        <div class="w-1/2"><b>Total Siswa:</b> ${c.students.length} (${c.students.filter(s=>s.jenisKelamin==='L').length} L / ${c.students.filter(s=>s.jenisKelamin==='P').length} P)</div>
+                        <div class="w-1/2 text-right">${docDate}</div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mt-6 text-xs text-center">
+                        <div><p>Mengetahui,</p><p>Kepala Sekolah</p><div class="h-12"></div><p class="font-bold underline text-sm">${kepsekName}</p><p class="text-sm">${kepsekNip}</p></div>
+                        <div><p>&nbsp;</p><p>Wali Kelas</p><div class="h-12"></div><p class="font-bold underline text-sm">${cWali}</p><p class="text-sm">${cNip}</p></div>
+                    </div>`;
+
+                // PAGE 2: SEATING
+                let seatingHtml = '';
+                c.seating.forEach((p, i) => {
+                    seatingHtml += `<div class="border border-slate-400 p-2 text-center rounded shadow-sm h-[120px] flex flex-col"><div class="font-bold text-[10px] border-b pb-1 mb-1">MEJA ${i + 1}</div><div class="grid grid-cols-2 gap-1 h-full">`;
+                    [p[0], p[1]].forEach(s => { seatingHtml += s ? `<div class="bg-slate-50 border p-1 rounded flex items-center justify-center"><span class="font-bold text-[10px] whitespace-normal break-words line-clamp-3 leading-tight">${s.namaSiswa}</span></div>` : `<div class="border border-dashed text-[8px] text-slate-400 flex items-center justify-center">Kosong</div>`; });
+                    seatingHtml += `</div></div>`;
+                });
+
+                const page2 = document.createElement('div');
+                page2.className = 'print-page p-4 flex flex-col justify-between';
+                page2.innerHTML = `
+                    <div class="text-center border-b-4 border-double border-slate-900 pb-2 mb-3 flex items-center justify-center gap-4"><img src="https://i.ibb.co.com/LdsMJhz1/Icon-Header-WEB.png" class="w-12 h-12 object-contain"><div class="text-left"><h2 class="text-sm font-bold uppercase">DENAH TEMPAT DUDUK KELAS ${c.name}</h2><h1 class="text-lg font-black">SMP NEGERI 2 KEDUNGBANTENG</h1></div></div>
+                    <div class="w-full bg-slate-100 text-center py-2 rounded font-bold text-[10px] mb-4 border">Papan Tulis & Meja Guru</div>
+                    <div class="grid grid-cols-4 gap-3 flex-grow">${seatingHtml}</div>
+                    <div class="mt-4 pt-3 border-t text-xs text-center w-1/2 ml-auto"><p class="mb-1">${docDate}</p><p>Wali Kelas</p><div class="h-12"></div><p class="font-bold underline text-sm">${cWali}</p><p class="text-sm">${cNip}</p></div>`;
+
+                printArea.appendChild(page1); printArea.appendChild(page2);
+            });
+        }
+
+        // ==========================================
+        // INITIALIZATION
+        // ==========================================
+        window.onload = function() {
+            // Assign DOM elements safely
+            configClassesInput = document.getElementById('config-classes');
+            classSettingsList = document.getElementById('class-settings-list');
+            fileInput = document.getElementById('file-input');
+            resultCard = document.getElementById('result-card');
+            mainStateCard = document.getElementById('main-state-card');
+            printArea = document.getElementById('print-area');
+            classTabs = document.getElementById('class-tabs');
+
+            document.getElementById('dropzone').addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => { if(e.target.files.length) handleFile(e.target.files[0]); });
+            
+            // Re-attached listeners securely
+            const btnDemoElement = document.getElementById('btn-demo');
+            if (btnDemoElement) {
+                btnDemoElement.addEventListener('click', () => { 
+                    rawStudents = generateDemoData(); 
                     showToast("Sukses!", "Data simulasi sebanyak 240 siswa berhasil dimuat.", "success");
-                    processAndDistribute();
+                    processAndDistribute(); 
                 });
             }
 
-            // Download Template
-            if (btnTemplate) {
-                btnTemplate.addEventListener('click', () => {
+            const btnTemplateElement = document.getElementById('btn-template');
+            if (btnTemplateElement) {
+                btnTemplateElement.addEventListener('click', () => {
                     downloadExcelTemplate();
                 });
             }
 
-            // Process Class Distribution manually
-            if (btnProcess) {
-                btnProcess.addEventListener('click', () => {
+            const btnProcessElement = document.getElementById('btn-process');
+            if (btnProcessElement) {
+                btnProcessElement.addEventListener('click', () => {
                     if (rawStudents.length === 0) {
                         showToast("Data Kosong", "Silakan unggah file Excel atau klik tombol 'Gunakan Data Simulasi' terlebih dahulu.", "error");
                         return;
@@ -1971,18 +1058,24 @@
                 });
             }
 
-            // Toggle Views
-            if (toggleListView) toggleListView.addEventListener('click', () => setViewMode('list'));
-            if (toggleSeatingView) toggleSeatingView.addEventListener('click', () => setViewMode('seating'));
+            const toggleListElement = document.getElementById('toggle-list-view');
+            const toggleSeatingElement = document.getElementById('toggle-seating-view');
+            if (toggleListElement) toggleListElement.addEventListener('click', () => setViewMode('list'));
+            if (toggleSeatingElement) toggleSeatingElement.addEventListener('click', () => setViewMode('seating'));
 
-            // Pengikat ekspor Excel agar berjalan mulus
-            if (btnExportExcel) {
-                btnExportExcel.addEventListener('click', exportToExcel);
+            const btnExcelExport = document.getElementById('btn-export-excel');
+            if (btnExcelExport) btnExcelExport.addEventListener('click', exportToExcel);
+
+            const btnPrint = document.getElementById('btn-print-all');
+            if (btnPrint) {
+                btnPrint.addEventListener('click', () => { 
+                    preparePrintArea(); 
+                    setTimeout(() => window.print(), 500); 
+                });
             }
 
-            // Inisialisasi awal UI & Firebase secara aman setelah DOM siap
-            initClassConfigurations(); 
-            initFirebase(); 
+            initClassConfigurations();
+            initFirebase();
         }
     </script>
 </body>
