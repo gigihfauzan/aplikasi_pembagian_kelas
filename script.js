@@ -5,25 +5,8 @@ let activeClassIndex = 0;
 let viewMode = 'list';
 let classConfigurations = [];
 
-const defaultFirebaseConfig = {
-    apiKey: "AIzaSyB5IcirgGz6O0yclUseCUO-S_QKSMUvtpc",
-    authDomain: "smpn2-kedungbanteng-app.firebaseapp.com",
-    projectId: "smpn2-kedungbanteng-app",
-    storageBucket: "smpn2-kedungbanteng-app.firebasestorage.app",
-    messagingSenderId: "524999715159",
-    appId: "1:524999715159:web:6d6398a3e294a4d080b612"
-};
-
-let db = null;
-let isFirebaseActive = false;
-let authUser = null;
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'smpn2-kedungbanteng-app';
-
 // DOM Elements
-const dropzone = document.getElementById('dropzone');
-const fileInput = document.getElementById('file-input');
 const btnDemo = document.getElementById('btn-demo');
-const btnTemplate = document.getElementById('btn-template');
 const btnProcess = document.getElementById('btn-process');
 const mainStateCard = document.getElementById('main-state-card');
 const resultCard = document.getElementById('result-card');
@@ -38,36 +21,19 @@ const printArea = document.getElementById('print-area');
 const classSettingsList = document.getElementById('class-settings-list');
 const configClassesInput = document.getElementById('config-classes');
 
-// Inisialisasi Icon
 lucide.createIcons();
 
-// Sistem Toast
+// Sistem Toast Notifikasi
 function showToast(title, message, type = 'info') {
-    const toastContainer = document.getElementById('toast-container');
-    if (!toastContainer) return;
-    
+    const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
-    toast.className = `flex items-start gap-3 p-4 rounded-xl shadow-lg border text-sm max-w-sm transition-all duration-300 transform translate-y-2 opacity-0`;
-    
-    let bgClass = type === 'success' ? "bg-emerald-50 border-emerald-200 text-emerald-900" :
-                  type === 'error' ? "bg-rose-50 border-rose-200 text-rose-900" :
-                  "bg-blue-50 border-blue-200 text-blue-900";
-                  
-    let iconMarkup = type === 'success' ? `<i data-lucide="check-circle-2" class="text-emerald-500 w-5 h-5 flex-shrink-0"></i>` :
-                     type === 'error' ? `<i data-lucide="alert-triangle" class="text-rose-500 w-5 h-5 flex-shrink-0"></i>` :
-                     `<i data-lucide="info" class="text-blue-500 w-5 h-5 flex-shrink-0"></i>`;
-
-    toast.className += ` ${bgClass}`;
-    toast.innerHTML = `${iconMarkup}<div><h4 class="font-bold">${title}</h4><p class="text-xs opacity-90 mt-0.5">${message}</p></div>`;
-
-    toastContainer.appendChild(toast);
-    lucide.createIcons({ attrs: { class: 'w-5 h-5' } });
-    
+    const bgClass = type === 'success' ? "bg-emerald-50 text-emerald-900 border-emerald-200" :
+                    type === 'error' ? "bg-rose-50 text-rose-900 border-rose-200" : "bg-blue-50 text-blue-900 border-blue-200";
+    toast.className = `flex p-4 rounded-xl shadow border text-sm max-w-sm transition-all duration-300 transform translate-y-2 opacity-0 ${bgClass}`;
+    toast.innerHTML = `<div><h4 class="font-bold">${title}</h4><p class="text-xs opacity-90">${message}</p></div>`;
+    container.appendChild(toast);
     setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 50);
-    setTimeout(() => {
-        toast.classList.add('translate-y-2', 'opacity-0');
-        setTimeout(() => toast.remove(), 300);
-    }, 4000);
+    setTimeout(() => { toast.classList.add('translate-y-2', 'opacity-0'); setTimeout(() => toast.remove(), 300); }, 3000);
 }
 
 // Helpers
@@ -78,94 +44,50 @@ function getShortName(fullName) {
     return `${parts[0]} ${parts[1]} ${parts[2].charAt(0)}.`;
 }
 
-function toProperCase(str) {
-    if (!str) return '';
-    let cleanStr = String(str).replace(/\s+/g, ' ').trim();
-    let parts = cleanStr.split(',');
-    
-    let namePart = parts[0].split(' ').map(word => {
-        const upper = word.toUpperCase();
-        if (['SD', 'SDN', 'MI', 'MIM', 'MIN', 'SMP', 'SMA', 'SMK', 'MA', 'MTS', 'PMB', 'VII', 'VIII', 'IX', 'A', 'B', 'C', 'D'].includes(upper)) return upper;
-        if (word.includes("'")) return word.split("'").map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join("'");
-        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-    }).join(' ');
-
-    parts[0] = namePart;
-    for (let i = 1; i < parts.length; i++) {
-        let degree = parts[i].trim();
-        let lower = degree.replace(/\./g, '').toLowerCase();
-        if (lower === 'spd') degree = 'S.Pd.';
-        else if (lower === 'mpd') degree = 'M.Pd.';
-        else if (lower === 'sag') degree = 'S.Ag.';
-        else if (lower === 'sip') degree = 'S.IP.';
-        else degree = degree.charAt(0).toUpperCase() + degree.slice(1);
-        parts[i] = ' ' + degree;
-    }
-    return parts.join(',');
-}
-
 function normalizeSchool(name) {
     if (!name) return "SD SEBELUMNYA";
-    let clean = name.toLowerCase().trim();
-    clean = clean.replace(/sekolah dasar negeri|sekolah dasar negri|sd negeri|sd negri|sd\s+n\s*/g, 'SDN ');
-    clean = clean.replace(/madrasah ibtidaiyah|mi\s+negeri/g, 'MIN ');
-    return clean.toUpperCase();
+    return name.toUpperCase();
 }
 
-// Fitur Konfigurasi Kelas
+// Inisialisasi Tipe Kelas
 function initClassConfigurations() {
     if (!configClassesInput) return;
-    const classCount = parseInt(configClassesInput.value) || 7;
-    const currentConfigs = [...classConfigurations];
-    classConfigurations = [];
+    const count = parseInt(configClassesInput.value) || 7;
     classSettingsList.innerHTML = '';
+    classConfigurations = [];
 
-    for (let i = 0; i < classCount; i++) {
-        const letter = String.fromCharCode(65 + i); // A, B, C...
-        const existing = currentConfigs.find(c => c.letter === letter);
-        let defaultType = 'reguler';
-        if (i === classCount - 1) defaultType = 'prestasi';
-        else if (i < 2) defaultType = 'akademik';
-
-        const configObj = {
-            letter: letter,
-            type: existing ? existing.type : defaultType,
-            waliKelas: existing ? existing.waliKelas : `Wali Kelas VII ${letter}`,
-            nip: existing ? existing.nip : ''
-        };
-        classConfigurations.push(configObj);
+    for (let i = 0; i < count; i++) {
+        const letter = String.fromCharCode(65 + i);
+        let defaultType = (i === count - 1) ? 'prestasi' : (i < 2 ? 'akademik' : 'reguler');
+        
+        classConfigurations.push({ letter, type: defaultType, waliKelas: `Wali Kelas VII ${letter}`, nip: '' });
 
         const row = document.createElement('div');
-        row.className = "p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col gap-2";
+        row.className = "p-3 bg-slate-50 rounded-xl border flex flex-col gap-2 text-xs";
         row.innerHTML = `
-            <div class="flex items-center justify-between">
-                <span class="font-bold text-slate-800 text-sm">Kelas VII ${letter}</span>
-                <select class="class-type-select text-xs border border-slate-300 rounded px-2 py-1 outline-none" data-letter="${letter}">
-                    <option value="reguler" ${configObj.type === 'reguler' ? 'selected' : ''}>Reguler</option>
-                    <option value="akademik" ${configObj.type === 'akademik' ? 'selected' : ''}>Akademik</option>
-                    <option value="prestasi" ${configObj.type === 'prestasi' ? 'selected' : ''}>Prestasi</option>
+            <div class="flex justify-between font-bold text-blue-900">
+                <span>VII ${letter}</span>
+                <select class="class-type-select px-1 border rounded" data-letter="${letter}">
+                    <option value="reguler" ${defaultType==='reguler'?'selected':''}>Reguler</option>
+                    <option value="akademik" ${defaultType==='akademik'?'selected':''}>Akademik</option>
+                    <option value="prestasi" ${defaultType==='prestasi'?'selected':''}>Prestasi</option>
                 </select>
             </div>
             <div class="flex gap-2">
-                <input type="text" class="class-walikelas-input w-2/3 px-2 py-1.5 border border-slate-300 rounded text-xs" placeholder="Nama Wali Kelas" value="${configObj.waliKelas}" data-letter="${letter}">
-                <input type="text" class="class-nip-input w-1/3 px-2 py-1.5 border border-slate-300 rounded text-xs" placeholder="NIP" value="${configObj.nip}" data-letter="${letter}">
+                <input type="text" class="class-wali w-2/3 p-1.5 border rounded" placeholder="Wali Kelas" value="Wali Kelas VII ${letter}" data-letter="${letter}">
+                <input type="text" class="class-nip w-1/3 p-1.5 border rounded" placeholder="NIP" data-letter="${letter}">
             </div>
         `;
         classSettingsList.appendChild(row);
     }
-
-    // Attach Listeners to dynamic inputs
-    document.querySelectorAll('.class-type-select, .class-walikelas-input, .class-nip-input').forEach(el => {
+    
+    document.querySelectorAll('.class-type-select, .class-wali, .class-nip').forEach(el => {
         el.addEventListener('change', (e) => {
-            const letter = e.target.getAttribute('data-letter');
+            const letter = e.target.dataset.letter;
             const conf = classConfigurations.find(c => c.letter === letter);
-            if (!conf) return;
-
             if (e.target.classList.contains('class-type-select')) conf.type = e.target.value;
-            else if (e.target.classList.contains('class-walikelas-input')) conf.waliKelas = toProperCase(e.target.value);
+            else if (e.target.classList.contains('class-wali')) conf.waliKelas = e.target.value;
             else conf.nip = e.target.value;
-
-            e.target.value = e.target.classList.contains('class-walikelas-input') ? conf.waliKelas : e.target.value;
             
             const dClass = distributedClasses.find(cl => cl.letter === letter);
             if (dClass) {
@@ -173,183 +95,34 @@ function initClassConfigurations() {
                 dClass.nip = conf.nip;
                 renderClassContent();
             }
-            triggerAutosave();
         });
     });
 }
-
-const configInputs = document.querySelectorAll('.config-input');
-configInputs.forEach(el => el.addEventListener('change', triggerAutosave));
 if(configClassesInput) configClassesInput.addEventListener('change', initClassConfigurations);
 
-// Autosave & Firebase Sync
-let saveTimeout = null;
-function triggerAutosave() {
-    clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(saveConfigToFirestore, 1000);
-}
-
-async function saveConfigToFirestore() {
-    if (!isFirebaseActive || !authUser) return;
-    try {
-        const data = {
-            ta: document.getElementById('config-ta').value,
-            date: document.getElementById('config-date').value,
-            capacity: document.getElementById('config-capacity').value,
-            classes: document.getElementById('config-classes').value,
-            kepsekName: document.getElementById('config-kepsek-name').value,
-            kepsekNip: document.getElementById('config-kepsek-nip').value,
-            classConfigurations: classConfigurations
-        };
-        await db.collection('artifacts').doc(appId).collection('users').doc(authUser.uid).collection('settings').doc('config').set(data);
-        document.getElementById('autosave-indicator').classList.remove('hidden');
-        setTimeout(() => document.getElementById('autosave-indicator').classList.add('hidden'), 2000);
-    } catch (err) {
-        console.error("Autosave Failed:", err);
-    }
-}
-
-async function loadConfigFromFirestore() {
-    if (!isFirebaseActive || !authUser) return;
-    try {
-        const docSnap = await db.collection('artifacts').doc(appId).collection('users').doc(authUser.uid).collection('settings').doc('config').get();
-        if (docSnap.exists) {
-            const data = docSnap.data();
-            if(data.ta) document.getElementById('config-ta').value = data.ta;
-            if(data.date) document.getElementById('config-date').value = data.date;
-            if(data.capacity) document.getElementById('config-capacity').value = data.capacity;
-            if(data.classes) document.getElementById('config-classes').value = data.classes;
-            if(data.kepsekName) document.getElementById('config-kepsek-name').value = data.kepsekName;
-            if(data.kepsekNip) document.getElementById('config-kepsek-nip').value = data.kepsekNip;
-            if(data.classConfigurations) classConfigurations = data.classConfigurations;
-            initClassConfigurations();
-        }
-    } catch (err) {
-        console.error("Load Config Failed:", err);
-    }
-}
-
-async function initFirebase() {
-    try {
-        let configToUse = defaultFirebaseConfig;
-        if (!firebase.apps.length) firebase.initializeApp(configToUse);
-        db = firebase.firestore();
-        const auth = firebase.auth();
-        
-        const userCredential = await auth.signInAnonymously();
-        authUser = userCredential.user;
-        
-        if (authUser) {
-            isFirebaseActive = true;
-            document.getElementById('firebase-status-text').innerText = "Cloud Terhubung";
-            document.getElementById('firebase-status').classList.replace('bg-slate-800/80', 'bg-emerald-900/80');
-            document.querySelector('#firebase-status span').classList.replace('bg-slate-500', 'bg-emerald-400');
-            document.getElementById('btn-load-cloud').classList.remove('hidden');
-            
-            await loadConfigFromFirestore();
-            if (classConfigurations.length === 0) initClassConfigurations();
-        }
-    } catch (err) {
-        console.error("Firebase Init Error:", err);
-        initClassConfigurations(); // Fallback lokal
-    }
-}
-
-async function saveResultToFirestore() {
-    if (!isFirebaseActive || !authUser) return;
-    try {
-        const data = { rawStudents, distributedClasses, timestamp: firebase.firestore.FieldValue.serverTimestamp() };
-        await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('results').doc('latest_distribution').set(data);
-        showToast("Hasil Tersimpan", "Berhasil disimpan ke cloud.", "success");
-    } catch (err) {
-        showToast("Gagal Menyimpan", "Terjadi kesalahan sinkronisasi cloud.", "error");
-    }
-}
-
-async function loadResultFromFirestore(explicit = false) {
-    if (!isFirebaseActive || !authUser) return;
-    try {
-        const docSnap = await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('results').doc('latest_distribution').get();
-        if (docSnap.exists) {
-            const data = docSnap.data();
-            if (data.rawStudents) rawStudents = data.rawStudents;
-            if (data.distributedClasses) {
-                distributedClasses = data.distributedClasses.map(c => ({ ...c, seating: arrangeSeating(c.students || []) }));
-                activeClassIndex = 0;
-                renderStatsPanel();
-                renderClassTabs();
-                renderClassContent();
-                mainStateCard.classList.add('hidden');
-                resultCard.classList.remove('hidden');
-                quickStats.classList.remove('hidden');
-                if (explicit) showToast("Data Dimuat", "Hasil pembagian terakhir berhasil direstore.", "success");
-            }
-        } else if (explicit) {
-            showToast("Data Kosong", "Belum ada riwayat pembagian kelas di cloud.", "error");
-        }
-    } catch (err) {
-        if(explicit) showToast("Error", "Gagal memuat data.", "error");
-    }
-}
-
-// Logika Algoritma Distribusi Kelas
+// Distribusi & Algoritma
 function processAndDistribute() {
     if(rawStudents.length === 0) return;
     
-    // Normalisasi
-    rawStudents.forEach(s => {
-        s.namaSiswa = toProperCase(s.namaSiswa);
-        s.namaSekolah = normalizeSchool(s.namaSekolah);
-    });
-
-    const numClasses = classConfigurations.length;
-    const capacityPerClass = parseInt(document.getElementById('config-capacity').value) || 32;
-    
-    let classes = classConfigurations.map(conf => ({
-        letter: conf.letter,
-        type: conf.type,
-        waliKelas: conf.waliKelas,
-        nip: conf.nip,
-        capacity: capacityPerClass,
-        students: []
+    let classes = classConfigurations.map(c => ({
+        letter: c.letter, type: c.type, waliKelas: c.waliKelas, nip: c.nip, capacity: 32, students: []
     }));
 
-    // Pemisahan berdasarkan prestasi (prioritas kelas prestasi)
-    let poolPrestasi = rawStudents.filter(s => s.prestasi === 'Sertifikat');
-    let poolReguler = rawStudents.filter(s => s.prestasi !== 'Sertifikat');
-
-    // Distribusi kelas prestasi
-    const kelasPrestasi = classes.filter(c => c.type === 'prestasi');
-    if (kelasPrestasi.length > 0) {
-        poolPrestasi.forEach(s => {
-            let targetClass = kelasPrestasi.sort((a,b) => a.students.length - b.students.length)[0];
-            if(targetClass.students.length < targetClass.capacity) targetClass.students.push(s);
-            else poolReguler.push(s); // Jika penuh, lempar ke reguler
-        });
-    } else {
-        poolReguler.push(...poolPrestasi); // Jika tidak ada kelas prestasi, gabung semua
-    }
-
-    // Distribusi merata (berdasarkan Gender & Sekolah)
-    let boys = poolReguler.filter(s => s.jenisKelamin === 'L');
-    let girls = poolReguler.filter(s => s.jenisKelamin === 'P');
-    const availableClasses = classes.filter(c => c.type !== 'prestasi');
-
-    const distributePool = (pool) => {
-        // Group by school to spread them out
-        pool.sort((a,b) => a.namaSekolah.localeCompare(b.namaSekolah));
-        pool.forEach(s => {
-            let targetClass = availableClasses.filter(c => c.students.length < c.capacity)
-                                              .sort((a, b) => a.students.length - b.students.length)[0];
-            if(targetClass) targetClass.students.push(s);
-        });
-    }
-
-    distributePool(boys);
-    distributePool(girls);
+    // Simple Distribution Logic (Prestasi vs Reguler)
+    let sortedStudents = [...rawStudents].sort((a, b) => b.skorNilai - a.skorNilai);
+    let classIndex = 0;
+    
+    sortedStudents.forEach(s => {
+        // Jika kelas penuh, pindah ke kelas berikutnya
+        while (classes[classIndex].students.length >= classes[classIndex].capacity) {
+            classIndex = (classIndex + 1) % classes.length;
+        }
+        classes[classIndex].students.push(s);
+        classIndex = (classIndex + 1) % classes.length;
+    });
 
     classes.forEach(c => {
-        c.students.sort((a, b) => a.namaSiswa.localeCompare(b.namaSiswa));
+        c.students.sort((a,b) => a.namaSiswa.localeCompare(b.namaSiswa));
         c.seating = arrangeSeating(c.students);
     });
 
@@ -362,29 +135,22 @@ function processAndDistribute() {
     mainStateCard.classList.add('hidden');
     resultCard.classList.remove('hidden');
     quickStats.classList.remove('hidden');
-    
-    showToast("Pembagian Selesai", "Siswa berhasil didistribusikan secara proporsional.", "success");
-    saveResultToFirestore();
+    showToast("Berhasil", "Kelas dan denah berhasil disusun.", "success");
 }
 
 function arrangeSeating(students) {
     const boys = students.filter(s => s.jenisKelamin === 'L');
     const girls = students.filter(s => s.jenisKelamin === 'P');
     let pairs = [];
-    
-    // Pasangkan sesama gender dahulu
     while (boys.length >= 2) pairs.push([boys.shift(), boys.shift()]);
     while (girls.length >= 2) pairs.push([girls.shift(), girls.shift()]);
-    
-    // Sisa digabungkan atau dibiarkan sendiri
     if (boys.length > 0 && girls.length > 0) pairs.push([boys.shift(), girls.shift()]);
     else if (boys.length > 0) pairs.push([boys.shift(), null]);
     else if (girls.length > 0) pairs.push([girls.shift(), null]);
-    
     return pairs;
 }
 
-// Render Functions UI
+// Render UI Components
 function renderStatsPanel() {
     document.getElementById('stat-total-students').innerText = rawStudents.length;
     document.getElementById('stat-boys').innerText = rawStudents.filter(s => s.jenisKelamin === 'L').length;
@@ -397,7 +163,7 @@ function renderClassTabs() {
     distributedClasses.forEach((c, index) => {
         const btn = document.createElement('button');
         const isActive = index === activeClassIndex;
-        btn.className = `px-4 py-2 rounded-xl text-sm font-bold transition whitespace-nowrap ${isActive ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100'}`;
+        btn.className = `px-4 py-2 rounded-xl text-sm font-bold transition whitespace-nowrap ${isActive ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 border'}`;
         btn.innerHTML = `VII ${c.letter} <span class="ml-1 text-[10px] ${isActive ? 'bg-blue-500 text-blue-100' : 'bg-slate-200 text-slate-500'} px-1.5 py-0.5 rounded-full">${c.students.length}</span>`;
         btn.addEventListener('click', () => { activeClassIndex = index; renderClassTabs(); renderClassContent(); });
         classTabs.appendChild(btn);
@@ -406,122 +172,194 @@ function renderClassTabs() {
 
 function setViewMode(mode) {
     viewMode = mode;
-    toggleListView.className = mode === 'list' ? 'px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-800 shadow-sm transition flex items-center gap-1.5' : 'px-4 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-800 transition flex items-center gap-1.5';
-    toggleSeatingView.className = mode === 'seating' ? 'px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-800 shadow-sm transition flex items-center gap-1.5' : 'px-4 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-800 transition flex items-center gap-1.5';
+    toggleListView.className = mode === 'list' ? 'px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-800 shadow-sm transition' : 'px-4 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-800 transition';
+    toggleSeatingView.className = mode === 'seating' ? 'px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-800 shadow-sm transition' : 'px-4 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-800 transition';
     renderClassContent();
 }
+toggleListView.addEventListener('click', () => setViewMode('list'));
+toggleSeatingView.addEventListener('click', () => setViewMode('seating'));
 
 function renderClassContent() {
-    if (distributedClasses.length === 0) return;
-    const currentClass = distributedClasses[activeClassIndex];
-    dynamicContentArea.innerHTML = viewMode === 'list' ? renderTableView(currentClass) : renderSeatingView(currentClass);
+    const c = distributedClasses[activeClassIndex];
+    if (!c) return;
+
+    const boys = c.students.filter(s => s.jenisKelamin === 'L').length;
+    const girls = c.students.filter(s => s.jenisKelamin === 'P').length;
+    const avg = (c.students.reduce((a, s) => a + parseFloat(s.skorNilai || 0), 0) / (c.students.length || 1)).toFixed(1);
+
+    // KEMBALIKAN: Keterangan Statistik Header per Kelas
+    let html = `
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm">
+            <div><span class="text-xs text-slate-500 block">Total Siswa</span><span class="font-extrabold text-slate-800">${c.students.length} Siswa</span></div>
+            <div><span class="text-xs text-slate-500 block">Komposisi Gender</span><span class="font-bold text-slate-700">${boys} L / ${girls} P</span></div>
+            <div><span class="text-xs text-slate-500 block">Rata-rata Nilai</span><span class="font-bold text-amber-600 flex items-center gap-1"><i data-lucide="star" class="w-3.5 h-3.5"></i> ${avg}</span></div>
+            <div><span class="text-xs text-slate-500 block">Wali Kelas</span><span class="font-bold text-slate-700 truncate block" title="${c.waliKelas}">${c.waliKelas || '-'}</span></div>
+        </div>
+    `;
+
+    if (viewMode === 'list') {
+        let rows = c.students.map((s, i) => `
+            <tr class="border-b">
+                <td class="p-2 text-center text-xs">${i + 1}</td>
+                <td class="p-2 text-xs font-mono">${s.nisn}</td>
+                <td class="p-2 font-semibold text-sm">${s.namaSiswa}</td>
+                <td class="p-2 text-center text-xs">${s.jenisKelamin}</td>
+                <td class="p-2 text-xs">${s.namaSekolah}</td>
+            </tr>
+        `).join('');
+        html += `<div class="overflow-x-auto border rounded-xl"><table class="w-full text-left"><thead class="bg-slate-100 text-xs"><tr><th class="p-2 text-center w-12">No</th><th class="p-2">NISN</th><th class="p-2">Nama Lengkap</th><th class="p-2 text-center">L/P</th><th class="p-2">Sekolah</th></tr></thead><tbody class="bg-white">${rows}</tbody></table></div>`;
+    } else {
+        html += `<div class="bg-slate-800 rounded-xl p-6 text-white min-h-[400px]">
+            <div class="bg-slate-700 text-center py-2 rounded-lg font-bold text-xs mb-6 uppercase">Papan Tulis Depan Kelas</div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">`;
+        c.seating.forEach((pair, idx) => {
+            const p1 = pair[0] ? getShortName(pair[0].namaSiswa) : 'Kosong';
+            const p2 = pair[1] ? getShortName(pair[1].namaSiswa) : 'Kosong';
+            html += `
+                <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700">
+                    <div class="text-center text-[9px] font-bold text-slate-500 mb-2 border-b border-slate-700 pb-1">Meja ${idx + 1}</div>
+                    <div class="flex justify-between gap-2 text-xs font-semibold">
+                        <div class="w-1/2 bg-slate-700/50 p-2 text-center rounded truncate text-${pair[0]?.jenisKelamin==='L'?'blue':'rose'}-300">${p1}</div>
+                        <div class="w-1/2 bg-slate-700/50 p-2 text-center rounded truncate text-${pair[1]?.jenisKelamin==='L'?'blue':'rose'}-300">${p2}</div>
+                    </div>
+                </div>`;
+        });
+        html += `</div></div>`;
+    }
+
+    dynamicContentArea.innerHTML = html;
     lucide.createIcons({ root: dynamicContentArea });
 }
 
-function renderTableView(c) {
-    let tbody = c.students.map((s, i) => `
-        <tr class="hover:bg-slate-50 border-b border-slate-100">
-            <td class="p-3 text-center text-xs text-slate-500">${i + 1}</td>
-            <td class="p-3 text-xs font-mono text-slate-500">${s.nisn}</td>
-            <td class="p-3 font-semibold text-sm text-slate-800">${s.namaSiswa}</td>
-            <td class="p-3 text-center">
-                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold ${s.jenisKelamin === 'L' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}">${s.jenisKelamin}</span>
-            </td>
-            <td class="p-3 text-xs text-slate-600">${s.namaSekolah}</td>
-        </tr>
-    `).join('');
-
-    return `
-        <div class="overflow-x-auto rounded-xl border border-slate-200">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider">
-                        <th class="p-3 text-center w-12">No</th>
-                        <th class="p-3">NISN</th>
-                        <th class="p-3">Nama Lengkap Siswa</th>
-                        <th class="p-3 text-center">L/P</th>
-                        <th class="p-3">Asal Sekolah</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white">${tbody}</tbody>
-            </table>
-        </div>
-    `;
-}
-
-function renderSeatingView(c) {
-    let html = `
-        <div class="bg-slate-800 rounded-xl p-6 text-white min-h-[400px]">
-            <div class="bg-slate-700 text-center py-2 rounded-lg font-bold text-xs uppercase tracking-widest mb-6 flex justify-center items-center gap-2 border border-slate-600">
-                <i data-lucide="presentation" class="w-4 h-4 text-slate-400"></i> Papan Tulis & Meja Guru
-            </div>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-    `;
-
-    c.seating.forEach((pair, idx) => {
-        const p1 = pair[0] ? `<span class="${pair[0].jenisKelamin === 'L' ? 'text-blue-300' : 'text-rose-300'}">${getShortName(pair[0].namaSiswa)}</span>` : '<span class="text-slate-500 italic">Kosong</span>';
-        const p2 = pair[1] ? `<span class="${pair[1].jenisKelamin === 'L' ? 'text-blue-300' : 'text-rose-300'}">${getShortName(pair[1].namaSiswa)}</span>` : '<span class="text-slate-500 italic">Kosong</span>';
-        
-        html += `
-            <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700 shadow flex flex-col justify-between">
-                <div class="text-center text-[9px] font-extrabold text-slate-500 mb-2.5 uppercase tracking-wider pb-1 border-b border-slate-700">Meja ${idx + 1}</div>
-                <div class="flex justify-between items-center gap-2">
-                    <div class="w-1/2 bg-slate-700/50 p-2 rounded-lg text-center text-xs font-semibold truncate" title="${pair[0] ? pair[0].namaSiswa : ''}">${p1}</div>
-                    <div class="w-1/2 bg-slate-700/50 p-2 rounded-lg text-center text-xs font-semibold truncate" title="${pair[1] ? pair[1].namaSiswa : ''}">${p2}</div>
-                </div>
-            </div>
-        `;
-    });
-
-    html += `</div></div>`;
-    return html;
-}
-
-// Event Listeners Dasar
-if(btnDemo) btnDemo.addEventListener('click', () => {
-    rawStudents = generateDemoData();
-    showToast("Data Simulasi", "240 Siswa berhasil di-generate secara acak.", "success");
-});
-
-if(btnProcess) btnProcess.addEventListener('click', () => {
-    if(rawStudents.length === 0) { showToast("Data Kosong", "Silakan unggah data dahulu.", "error"); return; }
-    processAndDistribute();
-});
-
-if(toggleListView) toggleListView.addEventListener('click', () => setViewMode('list'));
-if(toggleSeatingView) toggleSeatingView.addEventListener('click', () => setViewMode('seating'));
-
-// Simulasi Data Generator
-function generateDemoData() {
-    const boys = ["Agus", "Budi", "Candra", "Dedi", "Eko", "Fajar", "Gilang", "Heri"];
-    const girls = ["Ayu", "Bunga", "Citra", "Dewi", "Eka", "Fitri", "Gita", "Hani"];
-    const lasts = ["Pratama", "Saputra", "Wijaya", "Kusuma", "Setiawan"];
-    const schools = ["SDN 1 KEDUNGBANTENG", "SDN 2 KEDUNGBANTENG", "MI MAARIF KEDUNGBANTENG"];
+// LOGIKA CETAK PDF (PERBAIKAN BUG HALAMAN KOSONG)
+function preparePrintArea() {
+    printArea.innerHTML = '';
+    const ta = document.getElementById('config-ta').value;
+    const dateStr = document.getElementById('config-date').value;
+    const kepsekName = document.getElementById('config-kepsek-name').value;
+    const kepsekNip = document.getElementById('config-kepsek-nip').value;
     
+    distributedClasses.forEach(c => {
+        // Halaman 1: Daftar Siswa
+        const page1 = document.createElement('div');
+        page1.className = 'print-page bg-white p-8 flex flex-col';
+        let tableRows = '';
+        c.students.forEach((s, idx) => {
+            tableRows += `<tr class="border-b border-gray-400">
+                <td class="py-1 px-2 text-center text-xs">${idx + 1}</td>
+                <td class="py-1 px-2 text-xs font-mono">${s.nisn}</td>
+                <td class="py-1 px-2 font-bold text-xs uppercase">${s.namaSiswa}</td>
+                <td class="py-1 px-2 text-center text-xs">${s.jenisKelamin}</td>
+                <td class="py-1 px-2 text-xs uppercase">${s.namaSekolah}</td>
+            </tr>`;
+        });
+        page1.innerHTML = `
+            <div class="text-center mb-4 border-b-2 border-black pb-2">
+                <h1 class="text-xl font-extrabold uppercase">SMP NEGERI 2 KEDUNGBANTENG</h1>
+                <h2 class="text-base font-bold uppercase">DAFTAR SISWA KELAS VII ${c.letter}</h2>
+                <p class="text-xs font-semibold">TAHUN AJARAN ${ta}</p>
+            </div>
+            <table class="w-full text-left border-collapse border border-gray-400 mb-6 flex-grow">
+                <thead class="bg-gray-100 border-b border-gray-400 uppercase text-xs font-bold">
+                    <tr><th class="py-2 px-2 border-r border-gray-400 text-center w-10">No</th>
+                    <th class="py-2 px-2 border-r border-gray-400">NISN</th>
+                    <th class="py-2 px-2 border-r border-gray-400">Nama Lengkap</th>
+                    <th class="py-2 px-2 border-r border-gray-400 text-center w-10">L/P</th>
+                    <th class="py-2 px-2">Asal Sekolah</th></tr>
+                </thead>
+                <tbody>${tableRows}</tbody>
+            </table>
+            <div class="flex justify-between items-end text-sm w-full mt-auto pt-4">
+                <div class="text-center"><p>Mengetahui,</p><p class="font-bold">Kepala Sekolah</p><div class="h-20"></div><p class="font-extrabold underline">${kepsekName}</p><p>${kepsekNip}</p></div>
+                <div class="text-center"><p>${dateStr}</p><p class="font-bold">Wali Kelas</p><div class="h-20"></div><p class="font-extrabold underline">${c.waliKelas}</p><p>${c.nip}</p></div>
+            </div>`;
+        printArea.appendChild(page1);
+
+        // Halaman 2: Denah
+        const page2 = document.createElement('div');
+        page2.className = 'print-page bg-white p-8 flex flex-col';
+        let seatingGridHtml = '';
+        c.seating.forEach((pair, idx) => {
+            seatingGridHtml += `
+                <div class="border-2 border-gray-800 p-2 flex flex-col">
+                    <div class="text-center text-[10px] font-bold mb-2 uppercase border-b border-gray-300 pb-1">Meja ${idx + 1}</div>
+                    <div class="flex justify-between items-center gap-2 text-[10px] font-bold uppercase">
+                        <div class="w-1/2 border border-gray-400 p-1 text-center h-12 flex items-center justify-center">${pair[0] ? pair[0].namaSiswa : 'KOSONG'}</div>
+                        <div class="w-1/2 border border-gray-400 p-1 text-center h-12 flex items-center justify-center">${pair[1] ? pair[1].namaSiswa : 'KOSONG'}</div>
+                    </div>
+                </div>`;
+        });
+        page2.innerHTML = `
+            <div class="text-center mb-6 border-b-2 border-black pb-2">
+                <h1 class="text-xl font-extrabold uppercase">SMP NEGERI 2 KEDUNGBANTENG</h1>
+                <h2 class="text-base font-bold uppercase">DENAH TEMPAT DUDUK KELAS VII ${c.letter}</h2>
+                <p class="text-xs font-semibold">TAHUN AJARAN ${ta}</p>
+            </div>
+            <div class="border-2 border-black rounded p-3 text-center font-bold text-sm mb-6 uppercase bg-gray-200">Papan Tulis & Meja Guru</div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 flex-grow content-start">${seatingGridHtml}</div>
+            <div class="flex justify-between items-end text-sm w-full mt-auto pt-4">
+                <div class="text-center"><p>Mengetahui,</p><p class="font-bold">Kepala Sekolah</p><div class="h-20"></div><p class="font-extrabold underline">${kepsekName}</p><p>${kepsekNip}</p></div>
+                <div class="text-center"><p>${dateStr}</p><p class="font-bold">Wali Kelas</p><div class="h-20"></div><p class="font-extrabold underline">${c.waliKelas}</p><p>${c.nip}</p></div>
+            </div>`;
+        printArea.appendChild(page2);
+    });
+}
+
+if(btnPrintAll) {
+    btnPrintAll.addEventListener('click', () => {
+        if(distributedClasses.length === 0) { showToast("Data Kosong", "Proses kelas terlebih dahulu.", "error"); return; }
+        preparePrintArea();
+        setTimeout(() => window.print(), 500); // Tunggu DOM render sebelum print
+    });
+}
+
+// LOGIKA EKSPOR EXCEL (PERBAIKAN BUG)
+if(btnExportExcel) {
+    btnExportExcel.addEventListener('click', () => {
+        if(distributedClasses.length === 0) { showToast("Data Kosong", "Proses kelas terlebih dahulu.", "error"); return; }
+        if (typeof XLSX === 'undefined') { showToast("Gagal", "Library Excel belum dimuat.", "error"); return; }
+        
+        const wb = XLSX.utils.book_new();
+        const ta = document.getElementById('config-ta').value;
+        
+        distributedClasses.forEach(c => {
+            const wsData = [
+                ["DAFTAR SISWA KELAS VII " + c.letter],
+                ["SMP NEGERI 2 KEDUNGBANTENG - TA. " + ta],
+                [],
+                ["NO", "NISN", "NAMA LENGKAP SISWA", "L/P", "ASAL SEKOLAH"]
+            ];
+            c.students.forEach((s, idx) => {
+                wsData.push([idx + 1, s.nisn, s.namaSiswa, s.jenisKelamin, s.namaSekolah]);
+            });
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            ws['!cols'] = [{wch:5}, {wch:15}, {wch:35}, {wch:5}, {wch:30}];
+            XLSX.utils.book_append_sheet(wb, ws, `Kelas VII ${c.letter}`);
+        });
+        
+        XLSX.writeFile(wb, `Pembagian_Kelas_Baru_${ta.replace('/','-')}.xlsx`);
+        showToast("Berhasil", "Berkas Excel berhasil diunduh.", "success");
+    });
+}
+
+// Data Simulasi
+btnDemo.addEventListener('click', () => {
+    initClassConfigurations();
     let list = [];
-    for (let i = 0; i < 240; i++) {
+    for (let i = 0; i < 224; i++) {
         const isBoy = Math.random() > 0.5;
-        const first = isBoy ? boys[Math.floor(Math.random()*boys.length)] : girls[Math.floor(Math.random()*girls.length)];
-        const last = lasts[Math.floor(Math.random()*lasts.length)];
         list.push({
             nisn: String(1203000000 + i),
-            namaSiswa: `${first} ${last}`,
+            namaSiswa: (isBoy ? "Budi " : "Siti ") + "Pratama " + i,
             jenisKelamin: isBoy ? 'L' : 'P',
-            skorNilai: (65 + Math.random() * 34).toFixed(1),
-            namaSekolah: schools[Math.floor(Math.random()*schools.length)],
+            skorNilai: parseFloat((65 + Math.random() * 34).toFixed(1)),
+            namaSekolah: "SDN 1 KEDUNGBANTENG",
             prestasi: Math.random() < 0.15 ? "Sertifikat" : "Kosong"
         });
     }
-    return list;
-}
+    rawStudents = list;
+    showToast("Data Simulasi", "Berhasil membuat 224 data siswa.", "success");
+});
 
-window.onload = function() {
-    initFirebase();
-    // Fitur cetak/Excel (Menggunakan window.print standar, logic PDF akan disematkan di CSS/Print Area)
-    if(btnPrintAll) {
-        btnPrintAll.addEventListener('click', () => {
-            if(distributedClasses.length === 0) { showToast("Kosong", "Data belum diproses.", "error"); return; }
-            window.print();
-        });
-    }
-};
+btnProcess.addEventListener('click', processAndDistribute);
+window.onload = initClassConfigurations;
